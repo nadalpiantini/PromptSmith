@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptSmith MCP Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-value {
+            color: #28a745;
+            font-weight: 500;
+        }
+        
+        .endpoints {
+            margin-top: 2rem;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .endpoint-method {
+            background: #007bff;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .endpoint-path {
+            font-family: monospace;
+            color: #333;
+        }
+        
+        .endpoint-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .mcp-info {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .mcp-title {
+            color: #1976d2;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .mcp-description {
+            color: #424242;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">PromptSmith</div>
+        <div class="subtitle">MCP Server for Prompt Engineering</div>
+        
+        <div class="status">
+            <div class="status-item">
+                <span class="status-label">Server Status</span>
+                <span class="status-value" id="serverStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Environment</span>
+                <span class="status-value">sujeto10</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Version</span>
+                <span class="status-value">1.0.0</span>
+            </div>
+        </div>
+        
+        <div class="mcp-info">
+            <div class="mcp-title">🤖 Model Context Protocol Server</div>
+            <div class="mcp-description">
+                This server implements the Model Context Protocol (MCP) for prompt engineering. 
+                It's designed to work with Cursor IDE and other MCP-compatible clients, not as a web service.
+                <br><br>
+                <strong>Available Tools:</strong> process_prompt, evaluate_prompt, save_prompt, search_prompts, get_prompt, compare_prompts, get_stats, validate_prompt
+            </div>
+        </div>
+        
+        <div class="endpoints">
+            <h3>Available Endpoints</h3>
+            <div class="endpoint">
+                <div>
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/health</span>
+                </div>
+                <span class="endpoint-description">Health check</span>
+            </div>
+            <div class="endpoint">
+                <div>
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/docs</span>
+                </div>
+                <span class="endpoint-description">API documentation</span>
+            </div>
+            <div class="endpoint">
+                <div>
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/favicon.ico</span>
+                </div>
+                <span class="endpoint-description">Favicon</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>PromptSmith MCP Server - Sujeto10 Laboratory Environment</p>
+            <p>For Cursor IDE integration, use the MCP configuration file</p>
+        </div>
+    </div>
+    
+    <script>
+        // Check server health
+        fetch('/health')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('serverStatus').textContent = 'Online';
+                document.getElementById('serverStatus').style.color = '#28a745';
+            })
+            .catch(error => {
+                document.getElementById('serverStatus').textContent = 'Offline';
+                document.getElementById('serverStatus').style.color = '#dc3545';
+            });
+    </script>
+</body>
+</html>
+
+

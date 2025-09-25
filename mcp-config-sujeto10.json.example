@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "promptsmith": {
+      "command": "node",
+      "args": ["/path/to/PrompSmith MCP/dist/cli.js"],
+      "env": {
+        "SUPABASE_URL": "your-supabase-project-url",
+        "SUPABASE_ANON_KEY": "your-supabase-anon-key",
+        "SUPABASE_SERVICE_KEY": "your-supabase-service-key",
+        "APP_VERSION": "1.0.0",
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info",
+        "MCP_SERVER_NAME": "promptsmith-mcp",
+        "MCP_SERVER_VERSION": "1.0.0",
+        "TELEMETRY_ENABLED": "true",
+        "LAB_ENVIRONMENT": "your-lab-env",
+        "PROJECT_PREFIX": "promptsmith_",
+        "DEPLOY_DOMAIN": "your-domain.com",
+        "SUPABASE_PROJECT_ID": "your-project-id",
+        "DB_POOL_MIN": "2",
+        "DB_POOL_MAX": "10",
+        "REQUEST_TIMEOUT": "30000",
+        "CACHE_TTL_DEFAULT": "3600"
+      }
+    }
+  }
+}

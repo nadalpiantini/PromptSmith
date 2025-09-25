@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/mcp_config_schema.json",
+  "mcpServers": {
+    "promptsmith": {
+      "command": "npx",
+      "args": ["promptsmith-mcp"],
+      "env": {
+        "SUPABASE_URL": "https://your-project.supabase.co",
+        "SUPABASE_ANON_KEY": "your-anon-key-here",
+        "REDIS_URL": "redis://localhost:6379",
+        "TELEMETRY_ENABLED": "true"
+      }
+    }
+  }
+}
