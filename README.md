@@ -1,135 +1,224 @@
-# PromptSmith MCP Server
+# PromptSmith MCP Server v1.0.0
 
 > **Transform "vibecoding" into production-ready prompts with AI-powered optimization**
 
-[![npm version](https://badge.fury.io/js/promptsmith-mcp.svg)](https://badge.fury.io/js/promptsmith-mcp)
+[![GitHub Release](https://img.shields.io/github/v/release/nadalpiantini/PromptSmith)](https://github.com/nadalpiantini/PromptSmith/releases)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
 ## 🎯 Overview
 
-PromptSmith is an intelligent **Model Context Protocol (MCP) server** that transforms raw, unstructured prompts ("vibecoding") into optimized, structured instructions with domain-specific intelligence. It acts as a sophisticated intermediary layer between developers and LLMs, ensuring consistent, high-quality prompt engineering.
+PromptSmith is an intelligent **Model Context Protocol (MCP) server** that transforms raw, unstructured prompts ("vibecoding") into optimized, structured instructions with domain-specific intelligence. It features a **hybrid architecture** with both CLI and MCP server modes, providing universal access to advanced prompt engineering capabilities.
 
 ### The Problem It Solves
 
-- **Vibecoding inefficiency**: Raw prompts like "bonita tabla sql" produce inconsistent results
-- **Domain expertise gap**: Generic prompts lack specialized knowledge for SQL, branding, cinema, etc.
+- **Vibecoding inefficiency**: Raw prompts like "create login form" produce inconsistent results
+- **Domain expertise gap**: Generic prompts lack specialized knowledge for 16+ domains
 - **Quality inconsistency**: No systematic way to measure and improve prompt effectiveness
 - **Learning curve**: Manual prompt engineering requires extensive expertise
+- **Template reuse**: No easy way to save and reuse optimized prompts across projects
 
 ### The Solution
 
+```bash
+# CLI Mode - Global command available anywhere
+pimpprompt "create login form"              # Auto-detect domain
+pimpprompt "SELECT users" --domain sql      # Force SQL domain  
+pimpprompt --list-templates                 # Browse saved templates
+pimpprompt --search "auth"                  # Find auth templates
+
+# Result: Visual display of improved prompt + save to templates
 ```
-Developer Input → PromptSmith MCP → Optimized Output
-"bonita tabla"  →                → "Generate a well-structured PostgreSQL schema..."
-                                   + System prompt + Quality score + Suggestions
+
+```typescript
+// MCP Mode - Integrated in Cursor IDE
+process_prompt({
+  raw: "create login form",
+  domain: "frontend" 
+})
+// Result: Complete optimized prompt with quality scores
 ```
 
 ## ✨ Key Features
 
-### 🧠 **Domain Intelligence**
-- **5 Specialized Domains**: SQL, Branding, Cinema, SaaS, DevOps + General
-- **Context-Aware Rules**: Domain-specific optimization and enhancement patterns
-- **Professional Standards**: Industry best practices built into each domain
+### 🧠 **Domain Intelligence (16 Specialized Domains)**
+- **Frontend**: React, Vue, Angular, responsive design patterns
+- **Backend**: APIs, databases, microservices, authentication
+- **Mobile**: iOS, Android, React Native, cross-platform
+- **AI/ML**: Model training, inference, data pipelines
+- **DevOps**: Infrastructure, deployment, monitoring, CI/CD
+- **SQL**: Database design, query optimization, migrations
+- **And 10 more**: SaaS, Branding, Cinema, Game Dev, Crypto, etc.
 
 ### 📊 **Multi-Dimensional Quality Scoring**
 - **4 Core Metrics**: Clarity, Specificity, Structure, Completeness
-- **Weighted Algorithms**: Domain-specific scoring optimization
-- **Actionable Feedback**: Specific suggestions for improvement
+- **Visual Feedback**: See exactly what was improved and why
+- **Learning System**: Templates improve over time with usage analytics
 
-### 🔄 **Learning & Optimization**
-- **Template Generation**: Liquid-based templating system
-- **Few-Shot Examples**: Contextual examples when beneficial
-- **Caching**: Redis-powered sub-500ms response times
-- **Usage Analytics**: Continuous improvement through telemetry
+### 🔄 **Template System**
+- **Global Templates**: Save optimized prompts for reuse across projects
+- **Smart Search**: Find relevant templates by keywords and domain
+- **Version Control**: Track template evolution and effectiveness
+- **Cross-Project**: Use templates in any Cursor window or CLI session
 
-### 🛠️ **Production Ready**
-- **8 MCP Tools**: Complete API for prompt lifecycle management
-- **Enterprise Grade**: TypeScript, comprehensive testing, error handling
-- **Extensible**: Plugin architecture for custom domains and rules
+### 🛠️ **Hybrid Architecture**
+- **CLI Mode**: `pimpprompt` command available globally on your system
+- **MCP Server**: Deep integration with Cursor IDE and other MCP clients
+- **Production Database**: Real Supabase persistence at sujeto10.com
+- **Fallback System**: Works even when network/database unavailable
 
-## 🚀 Quick Start (5 minutes)
+## 🚀 Installation & Setup (2 minutes)
 
-### 1. Installation
+### 1. Clone and Install
 
 ```bash
-npm install -g promptsmith-mcp
+# Clone the repository  
+git clone https://github.com/nadalpiantini/PromptSmith.git
+cd PromptSmith
+
+# Install dependencies and build
+npm install
+npm run build
+
+# Install globally (creates 'pimpprompt' command)
+npm link
+
+# Verify installation
+pimpprompt --help
 ```
 
-### 2. Environment Setup
+### 2. First Use - CLI Mode
 
-Create `.env` file:
 ```bash
-# Required
-SUPABASE_URL=your-supabase-project-url
-SUPABASE_KEY=your-supabase-anon-key
+# Process any prompt - domain auto-detected
+pimpprompt "create login form"
 
-# Optional (for caching)
-REDIS_URL=redis://localhost:6379
+# Force specific domain
+pimpprompt "SELECT users" --domain sql
 
-# Optional (for external LLM calls)
-OPENAI_API_KEY=your-openai-key
+# Browse available templates
+pimpprompt --list-templates
+
+# Search for specific templates
+pimpprompt --search "authentication"
 ```
 
-### 3. MCP Configuration
+**Result**: You'll see the improved prompt visually displayed for learning, plus it gets saved as a reusable template.
 
-Add to `~/.cursor/mcp.json`:
+### 3. MCP Integration for Cursor IDE
+
+#### Option A: Use Pre-configured File
+```bash
+# Copy the ready-to-use configuration
+cp cursor-mcp-config.json ~/.cursor/mcp-settings.json
+```
+
+#### Option B: Manual Configuration
+Add to your Cursor settings (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
+
 ```json
 {
   "mcpServers": {
     "promptsmith": {
-      "command": "promptsmith-mcp",
+      "command": "node",
+      "args": ["dist/mcp-server.js"],
+      "cwd": "/path/to/your/PromptSmith",
       "env": {
-        "SUPABASE_URL": "your-supabase-url",
-        "SUPABASE_KEY": "your-supabase-key"
+        "SUPABASE_URL": "https://nqzhxukuvmdlpewqytpv.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xemh4dWt1dm1kbHBld3F5dHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY3ODYwNzMsImV4cCI6MjA0MjM2MjA3M30.xLSRRy7FNMHJd9F39R85dU7qOzHLQxnMO0zQfqRZ1Ho",
+        "NODE_ENV": "production",
+        "TELEMETRY_ENABLED": "false"
       }
     }
   }
 }
 ```
 
-### 4. First Use
+**Important**: Replace `/path/to/your/PromptSmith` with the actual path where you cloned PromptSmith.
 
-In Cursor IDE:
+### 4. Restart Cursor
+
+Close Cursor completely and reopen it. The MCP tools will now be available.
+
+### 5. Test Integration
+
+In Cursor's chat, try:
+```
+Use the process_prompt tool to optimize this prompt: "create a user table"
+```
+
+You should see PromptSmith transform it into a professional, detailed prompt with quality scores.
+
+## 🔧 Usage Examples
+
+### CLI Examples
+
+```bash
+# Auto-detect domain (frontend detected)
+pimpprompt "responsive login form"
+
+# Result:
+# 📱 Domain detected: FRONTEND
+# ✨ Improved Prompt:
+# Create a responsive login form component with the following specifications:
+# - Mobile-first design with proper touch targets
+# - Form validation with real-time feedback
+# - Accessibility features (ARIA labels, keyboard navigation)
+# - Clean, modern UI with loading states
+# [Saved as template: "responsive-login-form-001"]
+
+# Force specific domain
+pimpprompt "user authentication" --domain backend
+
+# Browse templates
+pimpprompt --list-templates
+# Result: Shows all saved templates with domains and quality scores
+
+# Search templates
+pimpprompt --search "auth"
+# Result: Shows auth-related templates ranked by relevance
+```
+
+### MCP Examples (in Cursor)
+
 ```typescript
-// Process a vibecoding prompt
+// Basic prompt processing
 process_prompt({
-  raw: "necesito una tabla sql bonita para ventas",
-  domain: "sql",
-  tone: "technical"
+  raw: "need api for users",
+  domain: "backend"
 })
 
-// Result:
-{
-  "refined": "Create a well-structured PostgreSQL sales database schema including:\n- Products table with SKU, name, price, inventory tracking\n- Customers table with contact details and segmentation\n- Orders table linking customers to products with timestamps\n- Include appropriate indexes, foreign keys, and sample data",
-  "system": "You are a senior database architect specializing in e-commerce systems...",
-  "score": {
-    "clarity": 0.92,
-    "specificity": 0.89,
-    "structure": 0.95,
-    "completeness": 0.87,
-    "overall": 0.91
-  },
-  "suggestions": [
-    "Consider specifying expected data volume for index optimization",
-    "Add data retention and archival requirements"
-  ]
-}
+// Advanced with custom tone
+process_prompt({
+  raw: "movie script scene", 
+  domain: "cine",
+  tone: "dramatic"
+})
+
+// Search existing templates
+search_prompts({
+  query: "authentication",
+  domain: "backend",
+  limit: 5
+})
+
+// Get usage statistics
+get_stats()
 ```
 
 ## 🛠️ MCP Tools Reference
 
-| Tool | Purpose | Input | Output |
-|------|---------|-------|--------|
-| **`process_prompt`** | Transform vibecoding into optimized prompts | Raw prompt + domain + preferences | Refined prompt + system prompt + quality metrics |
-| **`evaluate_prompt`** | Analyze existing prompt quality | Prompt text + evaluation criteria | Quality breakdown + recommendations |
-| **`compare_prompts`** | A/B test multiple prompt variants | Array of prompt variants | Winner selection + detailed comparison |
-| **`save_prompt`** | Store refined prompts in knowledge base | Prompt + metadata + tags | Saved prompt with ID |
-| **`search_prompts`** | Find existing prompts by query/tags | Search parameters + filters | Ranked results with relevance scores |
-| **`get_prompt`** | Retrieve specific prompt by ID | Prompt ID | Full prompt details + metadata |
-| **`get_stats`** | System performance and usage analytics | Time range (optional) | Comprehensive system statistics |
-| **`validate_prompt`** | Check prompt for common issues | Prompt text + domain context | Validation results + suggestions |
+| Tool | Purpose | Example |
+|------|---------|---------|
+| **`process_prompt`** | Transform raw prompts into optimized versions | `process_prompt({ raw: "login form", domain: "frontend" })` |
+| **`evaluate_prompt`** | Analyze prompt quality with detailed scoring | `evaluate_prompt({ prompt: "Create a React component" })` |
+| **`compare_prompts`** | A/B test multiple prompt variants | `compare_prompts({ variants: ["prompt1", "prompt2"] })` |
+| **`save_prompt`** | Store prompts as reusable templates | `save_prompt({ prompt: "...", metadata: {...} })` |
+| **`search_prompts`** | Find templates by keywords and domain | `search_prompts({ query: "auth", domain: "backend" })` |
+| **`get_prompt`** | Retrieve specific template by ID | `get_prompt({ id: "template-123" })` |
+| **`get_stats`** | System usage and performance metrics | `get_stats()` |
+| **`validate_prompt`** | Check for common prompt issues | `validate_prompt({ prompt: "..." })` |
 
 ## 🎨 Domain Specializations
 
