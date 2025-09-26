@@ -5,21 +5,30 @@ import {
   SearchResult,
   SaveMetadata,
   QualityScore,
+  PromptDomain,
 } from '../types/prompt.js';
 import { Database } from '../types/database.js';
 
 export class StoreService {
-  private supabase: SupabaseClient<Database>;
+  private supabase: SupabaseClient<Database> | null;
+  private mockData: SavedPrompt[] = [];
+  private developmentMode: boolean;
 
   constructor() {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
-    }
+    // Check if we're in development/offline mode
+    this.developmentMode = !supabaseUrl || !supabaseKey || 
+                          supabaseUrl.includes('localhost') || 
+                          process.env.NODE_ENV === 'development';
 
-    this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
+    if (this.developmentMode) {
+      console.log('StoreService: Running in development/offline mode');
+      this.supabase = null;
+    } else {
+      this.supabase = createClient<Database>(supabaseUrl!, supabaseKey!);
+    }
   }
 
   async save(
@@ -30,8 +39,33 @@ export class StoreService {
     systemPrompt: string
   ): Promise<SavedPrompt> {
     try {
+      if (this.developmentMode) {
+        // Mock implementation for development mode
+        const savedPrompt: SavedPrompt = {
+          id: `mock-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          name: metadata.name,
+          prompt: refined,
+          systemPrompt,
+          domain: (metadata.domain || 'general') as PromptDomain,
+          description: metadata.description || '',
+          tags: metadata.tags || [],
+          score,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          metadata: {
+            name: metadata.name,
+            domain: (metadata.domain || 'general') as PromptDomain,
+            ...(metadata.authorId && { authorId: metadata.authorId })
+          }
+        };
+        
+        this.mockData.push(savedPrompt);
+        console.log(`Mock saved prompt: ${metadata.name} (${savedPrompt.id})`);
+        return savedPrompt;
+      }
+
       // Insert the prompt record
-      const { data: promptData, error: promptError } = await this.supabase
+      const { data: promptData, error: promptError } = await this.supabase!
         .from('promptsmith_prompts')
         .insert({
           name: metadata.name,
@@ -84,7 +118,62 @@ export class StoreService {
 
   async search(params: SearchParams): Promise<SearchResult[]> {
     try {
-      let query = this.supabase
+      if (this.developmentMode) {
+        // Mock implementation for development mode
+        let results = this.mockData.filter(prompt => {
+          if (params.domain && prompt.domain !== params.domain) return false;
+          if (params.tags && params.tags.length > 0) {
+            if (!params.tags.some(tag => prompt.tags.includes(tag))) return false;
+          }
+          if (params.query) {
+            const query = params.query.toLowerCase();
+            return prompt.name.toLowerCase().includes(query) ||
+                   (prompt.description || '').toLowerCase().includes(query) ||
+                   prompt.prompt.toLowerCase().includes(query);
+          }
+          return true;
+        });
+
+        // Apply sorting
+        switch (params.sortBy) {
+          case 'score':
+            results.sort((a, b) => b.score.overall - a.score.overall);
+            break;
+          case 'created':
+            results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            break;
+          case 'updated':
+            results.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+            break;
+          default: // relevance
+            break;
+        }
+
+        // Apply pagination
+        const start = params.offset || 0;
+        const end = start + (params.limit || 20);
+        results = results.slice(start, end);
+
+        return results.map(prompt => ({
+          id: prompt.id,
+          name: prompt.name,
+          prompt: prompt.prompt,
+          domain: prompt.domain,
+          description: prompt.description,
+          tags: prompt.tags,
+          score: prompt.score,
+          usage: {
+            count: 1,
+            successRate: 1.0,
+            avgResponseTime: 200,
+            lastUsed: prompt.updatedAt
+          },
+          createdAt: prompt.createdAt,
+          relevance: 0.8
+        }));
+      }
+
+      let query = this.supabase!
         .from('promptsmith_prompts')
         .select(`
           id,
@@ -182,7 +271,12 @@ export class StoreService {
 
   async getById(id: string): Promise<SavedPrompt | null> {
     try {
-      const { data, error } = await this.supabase
+      if (this.developmentMode) {
+        const prompt = this.mockData.find(p => p.id === id);
+        return prompt || null;
+      }
+
+      const { data, error } = await this.supabase!
         .from('promptsmith_prompts')
         .select(`
           id,
@@ -332,8 +426,41 @@ export class StoreService {
     qualityDistribution: { excellent: number; good: number; average: number; poor: number };
   }> {
     try {
+      if (this.developmentMode) {
+        // Mock implementation for development mode
+        const totalPrompts = this.mockData.length;
+        const scores = this.mockData.map(p => p.score.overall);
+        const averageScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+
+        const domainDistribution: Record<string, number> = {};
+        const tagDistribution: Record<string, number> = {};
+        const qualityDistribution = { excellent: 0, good: 0, average: 0, poor: 0 };
+
+        this.mockData.forEach(prompt => {
+          domainDistribution[prompt.domain] = (domainDistribution[prompt.domain] || 0) + 1;
+          
+          prompt.tags.forEach(tag => {
+            tagDistribution[tag] = (tagDistribution[tag] || 0) + 1;
+          });
+
+          if (prompt.score.overall >= 0.9) qualityDistribution.excellent++;
+          else if (prompt.score.overall >= 0.7) qualityDistribution.good++;
+          else if (prompt.score.overall >= 0.5) qualityDistribution.average++;
+          else qualityDistribution.poor++;
+        });
+
+        console.log(`Mock stats: ${totalPrompts} prompts, avg score: ${averageScore.toFixed(2)}`);
+        return {
+          totalPrompts,
+          averageScore,
+          domainDistribution,
+          tagDistribution,
+          qualityDistribution
+        };
+      }
+
       // Get total prompts and average score
-      const { data: statsData, error: statsError } = await this.supabase
+      const { data: statsData, error: statsError } = await this.supabase!
         .from('promptsmith_prompts')
         .select(`
           id,

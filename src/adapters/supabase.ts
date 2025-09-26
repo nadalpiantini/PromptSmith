@@ -26,7 +26,7 @@ export class SupabaseAdapter {
 
   constructor(
     private url: string = process.env.SUPABASE_URL!,
-    private key: string = process.env.SUPABASE_KEY!
+    private key: string = process.env.SUPABASE_ANON_KEY!
   ) {
     if (!this.url || !this.key) {
       throw new Error('Supabase URL and key are required');

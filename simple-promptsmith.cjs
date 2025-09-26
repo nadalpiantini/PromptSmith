@@ -9,16 +9,24 @@ class SimplePromptSmith {
   constructor() {
     this.wrapper = new PromptSmithWrapper();
     this.isReady = false;
+    this.useMCP = process.env.USE_MCP !== 'false'; // Default to true
   }
 
   async ensureReady() {
     if (this.isReady) return;
 
-    try {
-      await this.wrapper.ensureServerReady();
+    if (this.useMCP) {
+      try {
+        await this.wrapper.ensureServerReady();
+        this.isReady = true;
+        console.log('✅ Using MCP server for advanced functionality');
+      } catch (error) {
+        console.warn('⚠️ MCP server unavailable, falling back to direct processor');
+        this.useMCP = false;
+        this.isReady = true;
+      }
+    } else {
       this.isReady = true;
-    } catch (error) {
-      throw new Error(`Failed to start PromptSmith: ${error.message}`);
     }
   }
 
@@ -26,20 +34,28 @@ class SimplePromptSmith {
     await this.ensureReady();
 
     try {
-      const result = await this.wrapper.processPrompt(raw, domain, tone);
-
-      return {
-        original: raw,
-        refined: result.refined,
-        score: result.score || { overall: 0.8, clarity: 0.8, specificity: 0.7, structure: 0.8, completeness: 0.8 },
-        metadata: {
-          domain: domain,
-          tone: tone,
-          processingTime: 500,
-          templateUsed: result.templateUsed || 'basic',
-          improvementFactor: result.refined ? (result.refined.length / raw.length).toFixed(1) : '2.5'
-        }
-      };
+      if (this.useMCP) {
+        // Use MCP server for full functionality
+        const result = await this.wrapper.processPrompt(raw, domain, tone);
+        return {
+          original: result.original || raw,
+          refined: result.refined,
+          score: result.score || { overall: 0.8, clarity: 0.8, specificity: 0.7, structure: 0.8, completeness: 0.8 },
+          metadata: {
+            domain: result.metadata?.domain || domain,
+            tone: result.metadata?.tone || tone,
+            processingTime: result.metadata?.processingTime || 500,
+            templateUsed: result.metadata?.templateUsed || 'mcp-processed',
+            improvementFactor: result.refined ? (result.refined.length / raw.length).toFixed(1) : '2.5',
+            mcpMode: true
+          }
+        };
+      } else {
+        // Fallback to direct processing
+        const DirectProcessor = require('./direct-processor.cjs');
+        const processor = new DirectProcessor();
+        return await processor.processPrompt(raw, domain, tone);
+      }
     } catch (error) {
       throw new Error(`Processing failed: ${error.message}`);
     }

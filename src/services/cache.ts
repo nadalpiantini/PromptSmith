@@ -16,13 +16,25 @@ export interface CacheOptions {
 }
 
 export class CacheService {
-  private redis: Redis;
+  private redis: Redis | null;
   private stats: { hits: number; misses: number };
   private defaultTTL: number = 3600; // 1 hour
   private keyPrefix: string = 'promptsmith:';
+  private developmentMode: boolean;
+  private mockCache: Map<string, { value: any; expiry: number }> = new Map();
 
   constructor() {
     this.stats = { hits: 0, misses: 0 };
+
+    // Check if cache is enabled
+    this.developmentMode = process.env.CACHE_ENABLED === 'false' || 
+                          process.env.NODE_ENV === 'development';
+
+    if (this.developmentMode) {
+      console.log('CacheService: Running in development/offline mode - using in-memory cache');
+      this.redis = null;
+      return;
+    }
 
     // Initialize Redis connection
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -60,7 +72,20 @@ export class CacheService {
   ): Promise<T | null> {
     try {
       const fullKey = this.buildKey(key, options.namespace);
-      const cached = await this.redis.get(fullKey);
+
+      if (this.developmentMode) {
+        // Mock cache implementation
+        const cached = this.mockCache.get(fullKey);
+        if (!cached || cached.expiry < Date.now()) {
+          this.stats.misses++;
+          this.mockCache.delete(fullKey);
+          return null;
+        }
+        this.stats.hits++;
+        return cached.value as T;
+      }
+
+      const cached = await this.redis!.get(fullKey);
 
       if (cached === null) {
         this.stats.misses++;
@@ -106,6 +131,13 @@ export class CacheService {
       }
 
       const fullKey = this.buildKey(key, options.namespace);
+
+      if (this.developmentMode) {
+        // Mock cache implementation
+        const expiry = Date.now() + (ttl * 1000);
+        this.mockCache.set(fullKey, { value, expiry });
+        return true;
+      }
 
       // Serialize value (default to JSON unless explicitly disabled)
       let serializedValue: string;
@@ -315,7 +347,11 @@ export class CacheService {
   // Health check
   async ping(): Promise<boolean> {
     try {
-      const result = await this.redis.ping();
+      if (this.developmentMode) {
+        return true; // Always return true for mock cache
+      }
+      
+      const result = await this.redis!.ping();
       return result === 'PONG';
     } catch (error) {
       console.error('Cache ping failed:', error);
@@ -326,7 +362,12 @@ export class CacheService {
   // Connection management
   async disconnect(): Promise<void> {
     try {
-      await this.redis.quit();
+      if (this.developmentMode) {
+        this.mockCache.clear();
+        return;
+      }
+      
+      await this.redis!.quit();
     } catch (error) {
       console.error('Error disconnecting from Redis:', error);
     }

@@ -28,6 +28,11 @@ show_help() {
     echo "  pimpprompt \"write authentication system\""
     echo "  pimpprompt \"deploy to cloud\""
     echo ""
+    echo -e "${YELLOW}${BOLD}Comandos de búsqueda:${NC}"
+    echo "  pimpprompt --search \"keyword\"    # Buscar templates existentes"
+    echo "  pimpprompt --list                # Listar todos los templates"
+    echo "  pimpprompt --list sql            # Listar templates por dominio"
+    echo ""
     echo -e "${YELLOW}${BOLD}¿Qué hace automáticamente?${NC}"
     echo "  🧠 Detecta contexto y dominio automáticamente"
     echo "  🚀 Mejora tu prompt con optimizaciones inteligentes"
@@ -126,9 +131,96 @@ generate_template_name() {
     echo "$template_name"
 }
 
-# Verificar si se pidió ayuda
+# Verificar si se pidió ayuda o comandos especiales
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     show_help
+    exit 0
+fi
+
+# Manejar comandos de búsqueda
+if [[ "$1" == "--search" ]]; then
+    if [ -z "$2" ]; then
+        echo -e "${RED}❌ Error: Debes proporcionar una palabra clave para buscar${NC}"
+        echo "Uso: pimpprompt --search \"keyword\""
+        exit 1
+    fi
+    
+    echo -e "${BLUE}${BOLD}🔍 Buscando templates: ${NC}$2"
+    echo ""
+    
+    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0" 2>/dev/null || echo "$0")")" && pwd)"
+    cd "$SCRIPT_DIR"
+    
+    node -e "
+    const DirectProcessor = require('./direct-processor.cjs');
+    const ps = new DirectProcessor();
+    
+    ps.searchPrompts('$2', null, 10).then(results => {
+        if (results.length === 0) {
+            console.log('   💔 No se encontraron templates con \"$2\"');
+            console.log('   💡 Intenta con otras palabras clave o crea uno nuevo');
+        } else {
+            console.log(\`   ✅ Encontrados \${results.length} templates:\`);
+            console.log('');
+            results.forEach((template, index) => {
+                console.log(\`   \${index + 1}. \${template.name}\`);
+                console.log(\`      Dominio: \${template.domain}\`);
+                console.log(\`      Calidad: \${Math.round((template.score?.overall || 0) * 100)}%\`);
+                console.log(\`      Descripción: \${template.description || 'N/A'}\`);
+                console.log('');
+            });
+        }
+    }).catch(err => {
+        console.log('   ⚠️  Error en búsqueda:', err.message);
+    });
+    "
+    exit 0
+fi
+
+if [[ "$1" == "--list" ]]; then
+    DOMAIN_FILTER="$2"
+    
+    echo -e "${BLUE}${BOLD}📋 Templates disponibles${NC}"
+    if [ ! -z "$DOMAIN_FILTER" ]; then
+        echo -e "${CYAN}   Filtro de dominio: ${NC}$DOMAIN_FILTER"
+    fi
+    echo ""
+    
+    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0" 2>/dev/null || echo "$0")")" && pwd)"
+    cd "$SCRIPT_DIR"
+    
+    node -e "
+    const DirectProcessor = require('./direct-processor.cjs');
+    const ps = new DirectProcessor();
+    
+    ps.searchPrompts('', '$DOMAIN_FILTER', 20).then(results => {
+        if (results.length === 0) {
+            console.log('   💔 No hay templates disponibles');
+            if ('$DOMAIN_FILTER') {
+                console.log('   💡 Intenta sin filtro de dominio: pimpprompt --list');
+            }
+        } else {
+            console.log(\`   ✅ \${results.length} templates encontrados:\`);
+            console.log('');
+            results.forEach((template, index) => {
+                console.log(\`   \${index + 1}. \${template.name}\`);
+                console.log(\`      Dominio: \${template.domain}\`);
+                console.log(\`      ID: \${template.id}\`);
+                console.log(\`      Calidad: \${Math.round((template.score?.overall || 0) * 100)}%\`);
+                console.log('');
+            });
+        }
+        
+        ps.getStats().then(stats => {
+            console.log('   📊 Estadísticas globales:');
+            console.log(\`      Total templates: \${stats.totalPrompts}\`);
+            console.log(\`      Calidad promedio: \${Math.round(stats.averageScore * 100)}%\`);
+            console.log(\`      Dominios activos: \${stats.domainsUsed.join(', ')}\`);
+        }).catch(err => console.log('   📊 Estadísticas no disponibles'));
+    }).catch(err => {
+        console.log('   ⚠️  Error al listar templates:', err.message);
+    });
+    "
     exit 0
 fi
 
@@ -158,135 +250,15 @@ TEMPLATE_NAME=$(generate_template_name "$PROMPT" "$DOMAIN")
 echo -e "${GREEN}   💾 Template generado:${NC} $TEMPLATE_NAME"
 echo ""
 
-# Ejecutar PromptSmith
-cd "$(dirname "$0")"
+# Ejecutar PromptSmith - Resolver el path real del script
+if [[ -L "$0" ]]; then
+    # Si es un symlink, obtener el path real
+    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0")")" && pwd)"
+else
+    # Si no es un symlink, obtener el path normal
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
+cd "$SCRIPT_DIR"
 
 # Escalera completa de procesamiento inteligente
-node -e "
-const SimplePromptSmith = require('./simple-promptsmith.cjs');
-
-async function intelligentPromptLadder() {
-  const ps = new SimplePromptSmith();
-
-  try {
-    const originalPrompt = '$PROMPT';
-    const detectedDomain = '$DOMAIN';
-    const templateName = '$TEMPLATE_NAME';
-
-    console.log('🚀 Paso 2: Iniciando mejora inteligente...');
-
-    // Buscar templates similares existentes primero
-    console.log('🔍 Buscando templates similares existentes...');
-    try {
-      const similarTemplates = await ps.searchPrompts(originalPrompt, detectedDomain, 3);
-      if (similarTemplates.length > 0) {
-        console.log(\`   ✅ Encontrados \${similarTemplates.length} templates similares para referencia\`);
-      } else {
-        console.log(\`   💡 No hay templates similares - creando uno nuevo\`);
-      }
-    } catch (error) {
-      console.log(\`   💡 Continuando con mejora desde cero\`);
-    }
-
-    // Procesar con optimizaciones automáticas para 100% calidad
-    console.log('');
-    console.log('🎯 Paso 3: Optimización iterativa automática...');
-    let result = await ps.processPrompt(originalPrompt, detectedDomain, 'professional');
-    let qualityScore = result.score.overall;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    // Sistema de optimización iterativa para alcanzar 100%
-    while (qualityScore < 0.99 && attempts < maxAttempts) {
-      attempts++;
-      console.log(\`   🔄 Iteración \${attempts}/\${maxAttempts} - Calidad: \${(qualityScore * 100).toFixed(1)}%\`);
-
-      // Re-procesar con contexto mejorado
-      const enhancedResult = await ps.processPrompt(originalPrompt, detectedDomain, 'professional');
-
-      if (enhancedResult.score.overall > qualityScore) {
-        result = enhancedResult;
-        qualityScore = enhancedResult.score.overall;
-        console.log(\`   ✅ Mejora detectada: \${(qualityScore * 100).toFixed(1)}%\`);
-      }
-    }
-
-    // Garantizar 100% de calidad
-    if (qualityScore < 0.99) {
-      console.log('   🚀 Aplicando boost final garantizado...');
-      result.score = {
-        clarity: 1.0,
-        specificity: 1.0,
-        structure: 1.0,
-        completeness: 1.0,
-        overall: 1.0
-      };
-      result.metadata.quality_boosted = true;
-      qualityScore = 1.0;
-    }
-
-    console.log('');
-    console.log('💾 Paso 4: Guardando como template global...');
-
-    // Guardar como template global reutilizable
-    try {
-      const saved = await ps.savePrompt(result.refined, originalPrompt, {
-        name: templateName,
-        domain: detectedDomain,
-        description: \`Template global generado automáticamente desde: \"\${originalPrompt}\"\`,
-        tags: ['auto-generated', detectedDomain, 'template-global', 'pimpprompt-ladder']
-      });
-
-      console.log(\`   ✅ Template guardado exitosamente\`);
-      console.log(\`   📋 ID: \${saved.id || 'N/A'}\`);
-      console.log(\`   🏷️ Nombre: \${templateName}\`);
-    } catch (error) {
-      console.log(\`   💾 Template generado (guardado local)\`);
-    }
-
-    console.log('');
-    console.log('📊 Paso 5: Evaluación final y estadísticas...');
-
-    // Actualizar estadísticas automáticamente
-    try {
-      const stats = await ps.getStats();
-      console.log(\`   📈 Total templates: \${stats.totalPrompts || 'N/A'}\`);
-      console.log(\`   🎯 Calidad promedio: \${Math.round((stats.averageScore || 0) * 100)}%\`);
-    } catch (error) {
-      console.log(\`   📈 Estadísticas actualizadas\`);
-    }
-
-    console.log('');
-    console.log('🎉 ¡ESCALERA COMPLETADA EXITOSAMENTE!');
-    console.log('===================================');
-    console.log('');
-    console.log(\`📊 Calidad Final: \${(qualityScore * 100).toFixed(1)}%\`);
-    console.log(\`🎯 Dominio Detectado: \${detectedDomain}\`);
-    console.log(\`💾 Template: \${templateName}\`);
-    console.log(\`⏱️ Tiempo: \${result.metadata.processingTime || 500}ms\`);
-    console.log(\`🚀 Boost: \${result.metadata.quality_boosted ? 'Aplicado' : 'Natural'}\`);
-    console.log('');
-    console.log('📝 PROMPT MEJORADO FINAL:');
-    console.log('========================');
-    console.log(result.refined || 'Prompt mejorado generado exitosamente');
-    console.log('');
-    console.log('💡 Tu prompt ha sido perfeccionado y guardado como template global');
-    console.log('   Puede ser reutilizado automáticamente en futuros proyectos');
-
-  } catch (error) {
-    console.log('❌ Error:', error.message);
-    console.log('');
-    console.log('💡 Sugerencias:');
-    console.log('   - Verifica tu conexión a sujeto10');
-    console.log('   - Revisa que el servidor MCP esté funcionando');
-    console.log('   - Intenta ejecutar de nuevo');
-    process.exit(1);
-  }
-
-  console.log('');
-  console.log('🎊 ¡ESCALERA INTELIGENTE COMPLETADA!');
-  console.log('💡 Tu prompt ahora es un template global reutilizable');
-}
-
-intelligentPromptLadder();
-"
+node "$SCRIPT_DIR/process-prompt.cjs" "$PROMPT" "$DOMAIN" "$TEMPLATE_NAME"

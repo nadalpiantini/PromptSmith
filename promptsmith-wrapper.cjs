@@ -21,9 +21,11 @@ class PromptSmithWrapper {
     return new Promise((resolve, reject) => {
       console.log('🚀 Starting PromptSmith MCP Server...');
 
-      this.server = spawn('node', ['dist/cli.js'], {
+      // Use the clean MCP server entry point
+      this.server = spawn('node', ['dist/mcp-server.js'], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: process.cwd()
+        cwd: process.cwd(),
+        env: { ...process.env, MCP_MODE: 'true' }
       });
 
       const timeout = setTimeout(() => {
@@ -32,15 +34,19 @@ class PromptSmithWrapper {
 
       this.server.stderr.on('data', (data) => {
         const text = data.toString();
-        if (text.includes('PromptSmith MCP Server is ready!')) {
+        if (text.includes('MCP_READY:')) {
           this.isReady = true;
           clearTimeout(timeout);
-          console.log('✅ PromptSmith server ready!');
+          console.log('✅ PromptSmith MCP server ready!');
           resolve();
-        } else if (text.includes('❌') || text.includes('Error:')) {
+        } else if (text.includes('MCP_ERROR:')) {
           clearTimeout(timeout);
-          reject(new Error(`Server error: ${text}`));
+          reject(new Error(`MCP Server error: ${text}`));
+        } else if (text.includes('Error') && !text.includes('Redis')) {
+          // Log non-Redis errors
+          console.warn('⚠️ MCP Server warning:', text.trim());
         }
+        // Suppress Redis connection errors (expected when Redis not available)
       });
 
       this.server.stdout.on('data', (data) => {
@@ -50,7 +56,10 @@ class PromptSmithWrapper {
             const response = JSON.parse(text);
             this.handleResponse(response);
           } catch (error) {
-            // Ignore non-JSON output
+            // Ignore non-JSON output (like Redis reconnecting messages)
+            if (!text.includes('Redis') && text.length > 10) {
+              console.warn('⚠️ Unexpected server output:', text);
+            }
           }
         }
       });
@@ -97,6 +106,10 @@ class PromptSmithWrapper {
         }
       }, 30000);
 
+      // Debug mode: only log in debug mode
+      if (process.env.DEBUG_MCP) {
+        console.log('🔧 Sending MCP request:', JSON.stringify(request, null, 2));
+      }
       this.server.stdin.write(JSON.stringify(request) + '\n');
     });
   }
@@ -123,6 +136,17 @@ class PromptSmithWrapper {
         ...options
       }
     });
+    
+    // Extract the actual data from MCP response format
+    if (result && result.content && result.content[0] && result.content[0].text) {
+      try {
+        const parsed = JSON.parse(result.content[0].text);
+        return parsed.success ? parsed.data : parsed;
+      } catch (error) {
+        return result;
+      }
+    }
+    
     return result;
   }
 
@@ -155,12 +179,25 @@ class PromptSmithWrapper {
     const result = await this.sendRequest('tools/call', {
       name: 'save_prompt',
       arguments: {
-        refined: refined,
-        original: original,
-        metadata: metadata,
-        score: score
+        prompt: refined,  // MCP server expects 'prompt', not 'refined'
+        metadata: {
+          ...metadata,
+          originalPrompt: original,  // Include original in metadata
+          score: score              // Include score in metadata
+        }
       }
     });
+    
+    // Extract the actual data from MCP response format
+    if (result && result.content && result.content[0] && result.content[0].text) {
+      try {
+        const parsed = JSON.parse(result.content[0].text);
+        return parsed.success ? parsed.data : parsed;
+      } catch (error) {
+        return result;
+      }
+    }
+    
     return result;
   }
 

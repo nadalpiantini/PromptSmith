@@ -3,6 +3,8 @@
  * Global test setup and configuration
  */
 
+import { jest, expect, beforeEach, afterEach } from '@jest/globals';
+
 // Increase timeout for all tests
 jest.setTimeout(30000);
 
@@ -17,7 +19,7 @@ process.env.TELEMETRY_ENABLED = 'false';
 
 // Custom Jest matchers
 expect.extend({
-  toBeValidMCPResponse(received) {
+  toBeValidMCPResponse(received: any) {
     const pass = received &&
       received.jsonrpc === '2.0' &&
       typeof received.id !== 'undefined' &&
@@ -36,7 +38,7 @@ expect.extend({
     }
   },
 
-  toBeValidPromptResponse(received) {
+  toBeValidPromptResponse(received: any) {
     const pass = received &&
       typeof received.original === 'string' &&
       typeof received.refined === 'string' &&

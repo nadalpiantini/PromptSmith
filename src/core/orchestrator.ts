@@ -221,10 +221,10 @@ export class PromptOrchestrator {
 
       // Generate detailed breakdown
       const breakdown = {
-        clarity: { score: score.clarity, factors: [] },
-        specificity: { score: score.specificity, factors: [] },
-        structure: { score: score.structure, factors: [] },
-        completeness: { score: score.completeness, factors: [] }
+        clarity: { score: score.clarity, factors: [] as any[] },
+        specificity: { score: score.specificity, factors: [] as any[] },
+        structure: { score: score.structure, factors: [] as any[] },
+        completeness: { score: score.completeness, factors: [] as any[] }
       };
 
       // Generate recommendations

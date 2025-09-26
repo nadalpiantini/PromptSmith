@@ -17,8 +17,8 @@ export default {
   },
 
   // TypeScript configuration
-  globals: {
-    'ts-jest': {
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
       useESM: true,
       tsconfig: {
         module: 'ESNext',
@@ -29,7 +29,7 @@ export default {
         strict: false,
         skipLibCheck: true,
       },
-    },
+    }],
   },
 
   // Test file patterns
