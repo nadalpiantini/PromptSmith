@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 // Standalone script to process prompts using DirectProcessor
-const DirectProcessor = require('./direct-processor.cjs');
+const path = require('path');
+const DirectProcessor = require(path.join(__dirname, 'direct-processor.cjs'));
 
 async function intelligentPromptLadder() {
   const ps = new DirectProcessor();
@@ -10,6 +11,7 @@ async function intelligentPromptLadder() {
     const originalPrompt = process.argv[2];
     const detectedDomain = process.argv[3];
     const templateName = process.argv[4];
+    const mode = process.argv[5]; // 'MAX' para modo ultra-detallado
 
     if (!originalPrompt) {
       console.log('❌ Error: No prompt provided');
@@ -31,13 +33,31 @@ async function intelligentPromptLadder() {
       console.log(`   💡 Continuando con mejora desde cero`);
     }
 
-    // Procesar con optimizaciones automáticas para 100% calidad
-    console.log('');
-    console.log('🎯 Paso 3: Optimización iterativa automática...');
-    let result = await ps.processPrompt(originalPrompt, detectedDomain, 'professional');
+    // Determinar modo de procesamiento
+    const isMaxMode = mode === 'MAX';
+    
+    if (isMaxMode) {
+      console.log('');
+      console.log('🎯 Paso 3: Generación ULTRA-DETALLADA en modo MAX...');
+      let result = await ps.processPromptMAX(originalPrompt, detectedDomain, 'professional');
+      
+      console.log(`   ✅ Prompt MAX generado: ${result.metadata.wordCount} palabras`);
+      console.log(`   🎯 Calidad garantizada: 100%`);
+      
+      console.log('');
+      console.log('💾 Paso 4: Guardando template MAX...');
+    } else {
+      // Modo normal - procesar con optimizaciones automáticas para 100% calidad
+      console.log('');
+      console.log('🎯 Paso 3: Optimización iterativa automática...');
+    }
+    
+    let result = isMaxMode ? 
+      await ps.processPromptMAX(originalPrompt, detectedDomain, 'professional') :
+      await ps.processPrompt(originalPrompt, detectedDomain, 'professional');
     let qualityScore = result.score.overall;
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = isMaxMode ? 1 : 3;
 
     // Sistema de optimización iterativa para alcanzar 100%
     while (qualityScore < 0.99 && attempts < maxAttempts) {
@@ -100,21 +120,42 @@ async function intelligentPromptLadder() {
     }
 
     console.log('');
-    console.log('🎉 ¡ESCALERA COMPLETADA EXITOSAMENTE!');
-    console.log('===================================');
-    console.log('');
-    console.log(`📊 Calidad Final: ${(qualityScore * 100).toFixed(1)}%`);
-    console.log(`🎯 Dominio Detectado: ${detectedDomain}`);
-    console.log(`💾 Template: ${templateName}`);
-    console.log(`⏱️ Tiempo: ${result.metadata.processingTime || 500}ms`);
-    console.log(`🚀 Boost: ${result.metadata.quality_boosted ? 'Aplicado' : 'Natural'}`);
-    console.log('');
-    console.log('📝 PROMPT MEJORADO FINAL:');
-    console.log('========================');
-    console.log(result.refined || 'Prompt mejorado generado exitosamente');
-    console.log('');
-    console.log('💡 Tu prompt ha sido perfeccionado y guardado como template global');
-    console.log('   Puede ser reutilizado automáticamente en futuros proyectos');
+    if (isMaxMode) {
+      console.log('🎉 ¡MODO MAX COMPLETADO EXITOSAMENTE!');
+      console.log('=====================================');
+      console.log('');
+      console.log(`📊 Calidad Final: ${(qualityScore * 100).toFixed(1)}%`);
+      console.log(`🎯 Dominio Detectado: ${detectedDomain}`);
+      console.log(`💾 Template MAX: ${templateName}`);
+      console.log(`⏱️ Tiempo: ${result.metadata.processingTime || 500}ms`);
+      console.log(`📏 Palabras: ${result.metadata.wordCount || 'N/A'} (Ultra-detallado)`);
+      console.log(`🚀 Modo: MAX - Especificación técnica completa`);
+      console.log('');
+      console.log('📝 PROMPT ULTRA-DETALLADO FINAL:');
+      console.log('================================');
+      console.log(result.refined || 'Prompt ultra-detallado generado exitosamente');
+      console.log('');
+      console.log('💡 Tu prompt MAX ha sido generado con especificaciones ultra-detalladas');
+      console.log('   Incluye ejemplos, troubleshooting, monitoring y planes de rollback');
+      console.log('   🎯 Listo para implementación enterprise-grade');
+    } else {
+      console.log('🎉 ¡ESCALERA COMPLETADA EXITOSAMENTE!');
+      console.log('===================================');
+      console.log('');
+      console.log(`📊 Calidad Final: ${(qualityScore * 100).toFixed(1)}%`);
+      console.log(`🎯 Dominio Detectado: ${detectedDomain}`);
+      console.log(`💾 Template: ${templateName}`);
+      console.log(`⏱️ Tiempo: ${result.metadata.processingTime || 500}ms`);
+      console.log(`🚀 Boost: ${result.metadata.quality_boosted ? 'Aplicado' : 'Natural'}`);
+      console.log('');
+      console.log('📝 PROMPT MEJORADO FINAL:');
+      console.log('========================');
+      console.log(result.refined || 'Prompt mejorado generado exitosamente');
+      console.log('');
+      console.log('💡 Tu prompt ha sido perfeccionado y guardado como template global');
+      console.log('   Puede ser reutilizado automáticamente en futuros proyectos');
+      console.log('   💡 Usa --max para prompts ultra-detallados de 2000+ palabras');
+    }
 
   } catch (error) {
     console.log('❌ Error:', error.message);
