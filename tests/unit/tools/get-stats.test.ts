@@ -160,8 +160,8 @@ describe('get_stats tool', () => {
       const originalUptime = process.uptime;
       const originalMemoryUsage = process.memoryUsage;
 
-      process.uptime = jest.fn().mockReturnValue(123456);
-      process.memoryUsage = jest.fn().mockReturnValue({
+      (process.uptime as jest.Mock) = jest.fn().mockReturnValue(123456);
+      (process.memoryUsage as jest.Mock) = jest.fn().mockReturnValue({
         rss: 50 * 1024 * 1024,
         heapTotal: 30 * 1024 * 1024,
         heapUsed: 20 * 1024 * 1024,

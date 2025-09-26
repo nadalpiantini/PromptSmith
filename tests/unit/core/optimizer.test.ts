@@ -155,7 +155,7 @@ describe('PromptOptimizer', () => {
     });
 
     it('should generate appropriate system prompts', async () => {
-      const domains: PromptDomain[] = ['sql', 'branding', 'cine', 'saas', 'devops', 'general'];
+      const domains: string[] = ['sql', 'branding', 'cine', 'saas', 'devops', 'general'];
 
       for (const domain of domains) {
         const result = await optimizer.optimize('test prompt', createMockAnalysisResult(), domain);

@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "promptsmith": {
+      "command": "promptsmith-mcp"
+    }
+  }
+}

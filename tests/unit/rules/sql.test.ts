@@ -5,7 +5,7 @@
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { SQLRules } from '../../../src/rules/sql.js';
-import { DomainRule, DomainEnhancement } from '../../../src/types/domain.js';
+import { DomainRule } from '../../../src/types/domain.js';
 
 describe('SQLRules', () => {
   let sqlRules: SQLRules;
@@ -26,9 +26,9 @@ describe('SQLRules', () => {
     it('should have rules for common SQL operations', () => {
       const rules = sqlRules.getRules();
 
-      const hasTableRules = rules.some(r => r.pattern.test('create table'));
-      const hasSelectRules = rules.some(r => r.pattern.test('select from'));
-      const hasIndexRules = rules.some(r => r.pattern.test('create index'));
+      const hasTableRules = rules.some(r => r.pattern instanceof RegExp ? r.pattern.test('create table') : false);
+      const hasSelectRules = rules.some(r => r.pattern instanceof RegExp ? r.pattern.test('select from') : false);
+      const hasIndexRules = rules.some(r => r.pattern instanceof RegExp ? r.pattern.test('create index') : false);
 
       expect(hasTableRules).toBe(true);
       expect(hasSelectRules).toBe(true);
@@ -276,16 +276,16 @@ describe('SQLRules', () => {
       const prompt = 'SELECT * FROM large_table';
       const result = sqlRules.validate(prompt);
 
-      expect(result.warnings.some(w => w.message.includes('SELECT *'))).toBe(true);
-      expect(result.suggestions.some(s => s.includes('specific columns'))).toBe(true);
+      expect(result.warnings.some((w: any) => w.message.includes('SELECT *'))).toBe(true);
+      expect(result.suggestions.some((s: any) => s.includes('specific columns'))).toBe(true);
     });
 
     it('should detect missing WHERE clause in UPDATE/DELETE', () => {
       const dangerousUpdate = 'UPDATE users SET active = false';
       const result = sqlRules.validate(dangerousUpdate);
 
-      expect(result.warnings.some(w => w.message.includes('WHERE'))).toBe(true);
-      expect(result.suggestions.some(s => s.includes('WHERE clause'))).toBe(true);
+      expect(result.warnings.some((w: any) => w.message.includes('WHERE'))).toBe(true);
+      expect(result.suggestions.some((s: any) => s.includes('WHERE clause'))).toBe(true);
     });
 
     it('should validate table creation statements', () => {
@@ -301,7 +301,7 @@ describe('SQLRules', () => {
       const result = sqlRules.validate(vague);
 
       expect(result.suggestions.length).toBeGreaterThan(0);
-      expect(result.suggestions.some(s => s.includes('specific'))).toBe(true);
+      expect(result.suggestions.some((s: any) => s.includes('specific'))).toBe(true);
     });
 
     it('should validate JOIN syntax', () => {
@@ -316,8 +316,8 @@ describe('SQLRules', () => {
       const risky = 'SELECT * FROM users WHERE name = ' + "'admin' OR '1'='1'";
       const result = sqlRules.validate(risky);
 
-      expect(result.warnings.some(w => w.type === 'security')).toBe(true);
-      expect(result.suggestions.some(s => s.toLowerCase().includes('parameter'))).toBe(true);
+      expect(result.warnings.some((w: any) => w.type === 'security')).toBe(true);
+      expect(result.suggestions.some((s: any) => s.toLowerCase().includes('parameter'))).toBe(true);
     });
 
     it('should validate index creation', () => {
@@ -332,7 +332,7 @@ describe('SQLRules', () => {
       const generic = 'create database schema';
       const result = sqlRules.validate(generic);
 
-      expect(result.suggestions.some(s =>
+      expect(result.suggestions.some((s: any) =>
         s.includes('PostgreSQL') ||
         s.includes('MySQL') ||
         s.includes('database type')

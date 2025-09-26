@@ -108,7 +108,6 @@ describe('get_prompt tool', () => {
           tags: ['database', 'schema', 'advanced', 'postgresql'],
           isPublic: true,
           authorId: 'expert_architect_123',
-          version: '2.0.0',
         },
       });
       mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
@@ -447,7 +446,6 @@ describe('get_prompt tool', () => {
           name: 'Data Types Test',
           domain: 'general',
           isPublic: false,
-          version: '1.2.0',
         },
       });
       mockServices.store.getById.mockResolvedValueOnce(mockPrompt);

@@ -15,11 +15,11 @@ import { setupMockEnvironment } from '../../utils/mock-services.js';
 
 // Mock the analyzer and validator
 const mockAnalyzer = {
-  analyze: jest.fn(),
+  analyze: jest.fn<any>().mockResolvedValue(createMockAnalysisResult()),
 };
 
 const mockValidator = {
-  validate: jest.fn(),
+  validate: jest.fn<any>().mockResolvedValue(createMockValidationResult()),
 };
 
 // Mock the imports
@@ -77,8 +77,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -151,8 +151,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -205,8 +205,8 @@ describe('validate_prompt tool', () => {
         },
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -247,8 +247,8 @@ describe('validate_prompt tool', () => {
           warnings: [],
         });
 
-        mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-        mockValidator.validate.mockResolvedValueOnce(mockValidation);
+        (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+        (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
         const result = await server.handleValidatePrompt({
           prompt,
@@ -293,8 +293,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -338,8 +338,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -390,8 +390,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -437,8 +437,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt,
@@ -485,8 +485,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt: 'Test prompt',
@@ -503,8 +503,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       await server.handleValidatePrompt({
         prompt: 'Test prompt',
@@ -519,7 +519,7 @@ describe('validate_prompt tool', () => {
   describe('error handling', () => {
     it('should handle analyzer errors', async () => {
       const error = new Error('Analysis failed');
-      mockAnalyzer.analyze.mockRejectedValueOnce(error);
+      (mockAnalyzer.analyze as jest.Mock).mockRejectedValueOnce(error);
 
       await expect(server.handleValidatePrompt({
         prompt: 'Test prompt',
@@ -530,8 +530,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const error = new Error('Validation failed');
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockRejectedValueOnce(error);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockRejectedValueOnce(error);
 
       await expect(server.handleValidatePrompt({
         prompt: 'Test prompt',
@@ -565,8 +565,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt: longPrompt,
@@ -584,8 +584,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const { duration } = await measurePerformance(async () => {
         return await server.handleValidatePrompt({
@@ -604,8 +604,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValue(mockAnalysis);
-      mockValidator.validate.mockResolvedValue(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValue(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValue(mockValidation);
 
       const promises = Array.from({ length: 5 }, (_, i) =>
         server.handleValidatePrompt({
@@ -628,8 +628,8 @@ describe('validate_prompt tool', () => {
       const mockAnalysis = createMockAnalysisResult();
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt: 'Test prompt',
@@ -665,8 +665,8 @@ describe('validate_prompt tool', () => {
 
       const mockValidation = createMockValidationResult();
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt: 'Create secure user database',
@@ -713,8 +713,8 @@ describe('validate_prompt tool', () => {
         ],
       });
 
-      mockAnalyzer.analyze.mockResolvedValueOnce(mockAnalysis);
-      mockValidator.validate.mockResolvedValueOnce(mockValidation);
+      (mockAnalyzer.analyze as jest.Mock).mockResolvedValueOnce(mockAnalysis);
+      (mockValidator.validate as jest.Mock).mockResolvedValueOnce(mockValidation);
 
       const result = await server.handleValidatePrompt({
         prompt: 'Test validation prompt',

@@ -405,4 +405,267 @@ Consider the specific database engine when relevant, and explain trade-offs betw
 
     return rules;
   }
+
+  getRules(): DomainRule[] {
+    return this.getDefaultRules();
+  }
+
+  private getDomainRules(): DomainRule[] {
+    // Return the domain rules for SQL
+    return this.getDefaultRules();
+  }
+
+  private enhancePrompt(prompt: string): { improvements: any[] } {
+    // Basic enhancement logic
+    return { improvements: [] };
+  }
+
+  getSystemPrompt(): string {
+    return this.generateSystemPrompt();
+  }
+
+  enhance(prompt: string): any[] {
+    const result = this.apply(prompt);
+    const enhancements: any[] = [];
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Add structural enhancements
+    if (result.rulesApplied.some(rule => rule.includes('structure'))) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Improved prompt structure and clarity',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add performance enhancements
+    if (lowerPrompt.includes('performance') || lowerPrompt.includes('optimize') || lowerPrompt.includes('fast') || lowerPrompt.includes('slow')) {
+      enhancements.push({
+        type: 'performance',
+        enhancement: 'Consider query optimization with EXPLAIN, indexes, and proper WHERE clauses',
+        priority: 9,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add security enhancements
+    if (lowerPrompt.includes('user') || lowerPrompt.includes('password') || lowerPrompt.includes('auth')) {
+      enhancements.push({
+        type: 'security',
+        enhancement: 'Implement proper authentication and parameterized queries to prevent SQL injection',
+        priority: 10,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add column specification enhancements
+    if (lowerPrompt.includes('table') && !lowerPrompt.includes('column')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Specify column names, data types, and constraints for better table design',
+        priority: 7,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add JOIN enhancements
+    if (lowerPrompt.includes('join') || lowerPrompt.includes('relationship')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Define proper foreign key relationships and JOIN conditions',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add schema design enhancements
+    if (lowerPrompt.includes('schema') || lowerPrompt.includes('database design')) {
+      enhancements.push({
+        type: 'schema',
+        enhancement: 'Consider normalization, relationships, and data integrity constraints',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add normalization enhancements
+    if (lowerPrompt.includes('normalize') || lowerPrompt.includes('normalization')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Apply proper database normalization (1NF, 2NF, 3NF) to eliminate redundancy',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add migration enhancements
+    if (lowerPrompt.includes('migration') || lowerPrompt.includes('migrate')) {
+      enhancements.push({
+        type: 'migration',
+        enhancement: 'Include rollback procedures and data safety considerations',
+        priority: 9,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add transaction enhancements
+    if (lowerPrompt.includes('transaction') || lowerPrompt.includes('commit') || lowerPrompt.includes('rollback')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Implement proper transaction handling with BEGIN, COMMIT, and ROLLBACK',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add backup and recovery enhancements
+    if (lowerPrompt.includes('backup') || lowerPrompt.includes('recovery') || lowerPrompt.includes('restore')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Implement comprehensive backup and disaster recovery procedures',
+        priority: 9,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add stored procedure enhancements
+    if (lowerPrompt.includes('procedure') || lowerPrompt.includes('function') || lowerPrompt.includes('stored')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Define proper stored procedures with error handling and documentation',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add naming convention enhancements
+    if (lowerPrompt.includes('naming') || lowerPrompt.includes('convention')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Use consistent naming conventions (snake_case for tables/columns)',
+        priority: 7,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add NoSQL to SQL conversion enhancements
+    if (lowerPrompt.includes('nosql') || lowerPrompt.includes('mongodb') || lowerPrompt.includes('convert')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Design relational schema structure with proper relationships and constraints',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    return enhancements;
+  }
+
+  validate(prompt: string): any {
+    const warnings: any[] = [];
+    const suggestions: string[] = [];
+    const errors: any[] = [];
+    
+    // Check for SELECT * usage
+    if (prompt.toLowerCase().includes('select *')) {
+      warnings.push({
+        type: 'performance',
+        message: 'SELECT * can impact performance. Consider specifying columns.',
+        severity: 'medium'
+      });
+      suggestions.push('Use specific columns instead of SELECT *');
+    }
+    
+    // Check for missing WHERE clause in UPDATE/DELETE
+    if ((prompt.toLowerCase().includes('update') || prompt.toLowerCase().includes('delete')) && 
+        !prompt.toLowerCase().includes('where')) {
+      warnings.push({
+        type: 'security',
+        message: 'UPDATE/DELETE without WHERE clause can affect all rows.',
+        severity: 'high'
+      });
+      suggestions.push('Add WHERE clause to limit affected rows');
+    }
+    
+    // Check for vague table creation
+    if (prompt.toLowerCase().includes('create table') && !prompt.toLowerCase().includes('columns')) {
+      suggestions.push('Specify column names and data types');
+    }
+    
+    // Check for vague prompts
+    if (prompt.toLowerCase().includes('make database') || prompt.toLowerCase().includes('create database')) {
+      suggestions.push('Be more specific about database requirements and structure');
+    }
+    
+    // Check for SQL injection patterns
+    if (prompt.includes("'") && prompt.includes('OR') && prompt.includes('=')) {
+      warnings.push({
+        type: 'security',
+        message: 'Potential SQL injection pattern detected.',
+        severity: 'high'
+      });
+      suggestions.push('Use parameterized queries to prevent SQL injection');
+    }
+    
+    // Check for JOIN syntax
+    if (prompt.toLowerCase().includes('join') && !prompt.toLowerCase().includes('on')) {
+      warnings.push({
+        type: 'syntax',
+        message: 'JOIN statement missing ON clause.',
+        severity: 'medium'
+      });
+      suggestions.push('Add proper ON clause for JOIN conditions');
+    }
+    
+    // Check for index creation
+    if (prompt.toLowerCase().includes('create index')) {
+      suggestions.push('Consider the impact on write performance when creating indexes');
+    }
+    
+    // Check for database type specification
+    if (prompt.toLowerCase().includes('database') && !prompt.toLowerCase().includes('postgresql') && 
+        !prompt.toLowerCase().includes('mysql') && !prompt.toLowerCase().includes('sqlite')) {
+      suggestions.push('Specify database type (PostgreSQL, MySQL, SQLite) for better optimization');
+    }
+    
+    return {
+      isValid: warnings.length === 0 && errors.length === 0,
+      errors,
+      warnings,
+      suggestions,
+      domainSpecificChecks: {
+        sql: {
+          syntaxValid: !prompt.toLowerCase().includes('select *') && 
+                      !((prompt.toLowerCase().includes('update') || prompt.toLowerCase().includes('delete')) && 
+                        !prompt.toLowerCase().includes('where')),
+          hasJoins: prompt.toLowerCase().includes('join'),
+          hasIndexes: prompt.toLowerCase().includes('index')
+        }
+      }
+    };
+  }
+
+  getExamples(type: string): string[] {
+    // Return example prompts based on type
+    const examples: Record<string, string[]> = {
+      'create table': [
+        'CREATE TABLE users (id SERIAL PRIMARY KEY, name VARCHAR(100), email VARCHAR(255) UNIQUE);',
+        'CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(255), price DECIMAL(10,2));',
+        'CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), total DECIMAL(10,2));'
+      ],
+      'select query': [
+        'SELECT * FROM users WHERE active = true;',
+        'SELECT name, email FROM users WHERE created_at > \'2024-01-01\';',
+        'SELECT COUNT(*) FROM orders WHERE status = \'completed\';'
+      ],
+      'join tables': [
+        'SELECT u.name, o.total FROM users u JOIN orders o ON u.id = o.user_id;',
+        'SELECT p.name, c.name FROM products p JOIN categories c ON p.category_id = c.id;',
+        'SELECT u.name, o.total, o.created_at FROM users u INNER JOIN orders o ON u.id = o.user_id WHERE o.status = \'completed\';'
+      ]
+    };
+    
+    return examples[type] || [];
+  }
 }

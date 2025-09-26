@@ -301,7 +301,7 @@ describe('Error Handling and Edge Cases', () => {
         console.log(`Rapid requests: ${successful} successful, ${failed} failed`);
 
         // Most requests should succeed
-        expect(successful).toBeGreaterThan(rapid Requests.length * 0.8);
+        expect(successful).toBeGreaterThan(rapidRequests.length * 0.8);
 
         // If some fail, they should fail gracefully
         results.forEach((result, index) => {

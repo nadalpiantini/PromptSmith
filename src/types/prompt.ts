@@ -7,7 +7,19 @@ export enum PromptDomain {
   CINE = 'cine',
   SAAS = 'saas',
   DEVOPS = 'devops',
-  GENERAL = 'general'
+  GENERAL = 'general',
+  // Additional domains detected by the system
+  MOBILE = 'mobile',
+  WEB = 'web',
+  BACKEND = 'backend',
+  FRONTEND = 'frontend',
+  AI = 'ai',
+  GAMING = 'gaming',
+  CRYPTO = 'crypto',
+  EDUCATION = 'education',
+  HEALTHCARE = 'healthcare',
+  FINANCE = 'finance',
+  LEGAL = 'legal'
 }
 
 // Tone enum
@@ -25,6 +37,26 @@ export interface QualityScore {
   structure: number;
   completeness: number;
   overall: number;
+}
+
+// Optimization result
+export interface OptimizationResult {
+  optimized: string;
+  improvements: OptimizationImprovement[];
+  rulesApplied: string[];
+  enhancements?: OptimizationImprovement[];
+  systemPrompt?: string;
+  templateVariables?: string[];
+  contextSuggestions?: string[];
+}
+
+// Optimization improvement
+export interface OptimizationImprovement {
+  type: 'clarity' | 'specificity' | 'structure' | 'tone' | 'context';
+  description: string;
+  before?: string;
+  after?: string;
+  impact: 'low' | 'medium' | 'high';
 }
 
 // Analysis result
@@ -239,7 +271,7 @@ export interface VariantMetric {
   name: string;
   value: number;
   unit: string;
-  better: 'higher' | 'lower';
+  better: 'higher' | 'lower' | 'optimal' | 'balanced';
 }
 
 // Comparison metric
@@ -274,6 +306,7 @@ export interface SaveMetadata {
   category?: string;
   isPublic?: boolean;
   authorId?: string;
+  version?: string;
 }
 
 // Search parameters

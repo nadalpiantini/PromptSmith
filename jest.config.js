@@ -28,6 +28,7 @@ export default {
         esModuleInterop: true,
         strict: false,
         skipLibCheck: true,
+        types: ['jest', '@jest/globals']
       },
     }],
   },

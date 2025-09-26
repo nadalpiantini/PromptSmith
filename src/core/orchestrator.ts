@@ -82,12 +82,11 @@ export class PromptOrchestrator {
 
       // 4. Optimize the prompt structure and content
       this.telemetry.track('optimization_start', { domain: input.domain });
-      const optimizationResult = await this.optimizer.optimize({
-        prompt: refinementResult.refined,
-        ...(input.tone && { tone: input.tone }),
-        ...(input.context && { context: input.context }),
+      const optimizationResult = await this.optimizer.optimize(
+        refinementResult.refined,
         analysis,
-      });
+        input.domain
+      );
       this.telemetry.track('optimization_complete', {
         domain: input.domain,
         improvements: optimizationResult.improvements.length,

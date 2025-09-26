@@ -295,7 +295,7 @@ export interface Database {
       }
     }
     Enums: {
-      promptsmith_domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general'
+      promptsmith_domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal'
       promptsmith_tone: 'formal' | 'casual' | 'technical' | 'creative'
       promptsmith_template_type: 'basic' | 'chain-of-thought' | 'few-shot' | 'role-based' | 'step-by-step'
       promptsmith_rule_category: 'vague_terms' | 'structure' | 'enhancement' | 'terminology' | 'formatting' | 'context'

@@ -49,7 +49,7 @@ describe('MCP Protocol Integration', () => {
         expect(Array.isArray(tools)).toBe(true);
         expect(tools.length).toBeGreaterThan(0);
       });
-    }, 'dist/cli.js');
+    }, 5000);
 
     it('should handle server startup timeout gracefully', async () => {
       // Test with non-existent server path

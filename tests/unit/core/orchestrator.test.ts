@@ -12,7 +12,9 @@ import {
   ComparisonResult,
   SavedPrompt,
   SearchResult,
-  ValidationResult
+  ValidationResult,
+  PromptDomain,
+  PromptTone
 } from '../../../src/types/prompt.js';
 import {
   createMockProcessResult,
@@ -105,8 +107,8 @@ describe('PromptOrchestrator', () => {
     it('should process a simple prompt successfully', async () => {
       const input: ProcessInput = {
         raw: 'Create a user table',
-        domain: 'sql',
-        tone: 'technical'
+        domain: PromptDomain.SQL,
+        tone: PromptTone.TECHNICAL
       };
 
       mockCache.get.mockResolvedValueOnce(null); // No cache hit
@@ -129,7 +131,7 @@ describe('PromptOrchestrator', () => {
     it('should return cached result when available', async () => {
       const input: ProcessInput = {
         raw: 'Create a user table',
-        domain: 'sql'
+        domain: PromptDomain.SQL
       };
 
       const cachedResult = createMockProcessResult();
@@ -145,7 +147,7 @@ describe('PromptOrchestrator', () => {
     it('should handle processing errors gracefully', async () => {
       const input: ProcessInput = {
         raw: 'Create a user table',
-        domain: 'sql'
+        domain: PromptDomain.SQL
       };
 
       mockCache.get.mockResolvedValueOnce(null);
@@ -179,7 +181,7 @@ describe('PromptOrchestrator', () => {
     it('should handle template variables', async () => {
       const input: ProcessInput = {
         raw: 'Create {{type}} for {{purpose}}',
-        domain: 'general',
+        domain: PromptDomain.GENERAL,
         variables: {
           type: 'function',
           purpose: 'authentication'
@@ -198,7 +200,7 @@ describe('PromptOrchestrator', () => {
     it('should include performance metrics', async () => {
       const input: ProcessInput = {
         raw: 'Create a database',
-        domain: 'sql'
+        domain: PromptDomain.SQL
       };
 
       mockCache.get.mockResolvedValueOnce(null);
@@ -290,7 +292,8 @@ describe('PromptOrchestrator', () => {
     it('should save a prompt to the store', async () => {
       const prompt = 'CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))';
       const metadata = {
-        domain: 'sql' as const,
+        name: 'User Table Creation',
+        domain: PromptDomain.SQL,
         description: 'User table creation',
         tags: ['database', 'users'],
         author: 'test'
@@ -319,7 +322,8 @@ describe('PromptOrchestrator', () => {
     it('should validate before saving', async () => {
       const prompt = '';
       const metadata = {
-        domain: 'sql' as const,
+        name: 'Empty Prompt',
+        domain: PromptDomain.SQL,
         description: 'Empty prompt'
       };
 
@@ -338,7 +342,8 @@ describe('PromptOrchestrator', () => {
     it('should clear cache after saving', async () => {
       const prompt = 'Test prompt';
       const metadata = {
-        domain: 'general' as const,
+        name: 'Test Prompt',
+        domain: PromptDomain.GENERAL,
         description: 'Test'
       };
 
@@ -361,7 +366,7 @@ describe('PromptOrchestrator', () => {
     it('should search prompts in the store', async () => {
       const searchParams = {
         query: 'user table',
-        domain: 'sql' as const,
+        domain: PromptDomain.SQL,
         limit: 10
       };
 
@@ -372,7 +377,7 @@ describe('PromptOrchestrator', () => {
           score: createMockQualityScore(),
           relevance: 0.9,
           metadata: {
-            domain: 'sql',
+            domain: PromptDomain.SQL,
             description: 'User table'
           }
         }
@@ -409,7 +414,7 @@ describe('PromptOrchestrator', () => {
         id: 'test-id',
         prompt: 'Test prompt',
         metadata: {
-          domain: 'general',
+          domain: PromptDomain.GENERAL,
           description: 'Test'
         },
         score: createMockQualityScore(),
@@ -467,14 +472,14 @@ describe('PromptOrchestrator', () => {
     it('should generate consistent cache keys', () => {
       const input1: ProcessInput = {
         raw: 'Create table',
-        domain: 'sql',
-        tone: 'technical'
+        domain: PromptDomain.SQL,
+        tone: PromptTone.TECHNICAL
       };
 
       const input2: ProcessInput = {
         raw: 'Create table',
-        domain: 'sql',
-        tone: 'technical'
+        domain: PromptDomain.SQL,
+        tone: PromptTone.TECHNICAL
       };
 
       const key1 = (orchestrator as any).generateCacheKey(input1);
@@ -486,12 +491,12 @@ describe('PromptOrchestrator', () => {
     it('should generate different keys for different inputs', () => {
       const input1: ProcessInput = {
         raw: 'Create table',
-        domain: 'sql'
+        domain: PromptDomain.SQL
       };
 
       const input2: ProcessInput = {
         raw: 'Create table',
-        domain: 'branding'
+        domain: PromptDomain.BRANDING
       };
 
       const key1 = (orchestrator as any).generateCacheKey(input1);

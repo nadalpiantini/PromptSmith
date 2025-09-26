@@ -462,7 +462,7 @@ describe('search_prompts tool', () => {
 
     it('should handle invalid parameters gracefully', async () => {
       // Invalid minScore should be handled by orchestrator
-      const mockResults = [];
+      const mockResults: any[] = [];
       mockOrchestrator.search.mockResolvedValueOnce(mockResults);
 
       const result = await server.handleSearchPrompts({

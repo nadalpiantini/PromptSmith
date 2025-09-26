@@ -4,11 +4,12 @@
   "description": "Intelligent prompt optimization MCP server for transforming vibecoding into structured prompts",
   "main": "dist/cli.js",
   "bin": {
-    "promptsmith-mcp": "./dist/cli.js"
+    "pimpprompt": "./pimpprompt",
+    "promptsmith-mcp": "./bin/promptsmith-mcp"
   },
   "type": "module",
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "build": "tsc && chmod +x dist/cli.js && chmod +x bin/promptsmith-mcp",
     "dev": "tsx watch src/cli.ts",
     "start": "node dist/cli.js",
     "start:http": "node dist/server/http-server.js",

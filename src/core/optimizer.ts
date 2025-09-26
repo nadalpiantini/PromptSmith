@@ -17,14 +17,19 @@ interface OptimizationResult {
   optimized: string;
   improvements: OptimizationImprovement[];
   rulesApplied: string[];
+  enhancements: OptimizationImprovement[];
+  systemPrompt: string;
+  templateVariables: string[];
+  contextSuggestions: string[];
 }
 
 interface OptimizationImprovement {
-  type: 'clarity' | 'specificity' | 'structure' | 'tone' | 'context';
+  type: 'clarity' | 'specificity' | 'structure' | 'tone' | 'context' | 'enhancement' | 'performance' | 'technical' | 'format';
   description: string;
   before?: string;
   after?: string;
   impact: 'low' | 'medium' | 'high';
+  category?: string;
 }
 
 export class PromptOptimizer {
@@ -34,7 +39,13 @@ export class PromptOptimizer {
     this.initializeRules();
   }
 
-  async optimize(context: OptimizationContext): Promise<OptimizationResult> {
+  async optimize(prompt: string, analysis: AnalysisResult, domain?: string): Promise<OptimizationResult> {
+    const context: OptimizationContext = {
+      prompt,
+      analysis,
+      tone: undefined,
+      context: undefined
+    };
     let optimized = context.prompt;
     const improvements: OptimizationImprovement[] = [];
     const rulesApplied: string[] = [];
@@ -84,6 +95,10 @@ export class PromptOptimizer {
         optimized: optimized.trim(),
         improvements,
         rulesApplied: [...new Set(rulesApplied)], // Remove duplicates
+        enhancements: improvements,
+        systemPrompt: this.generateSystemPrompt(domain),
+        templateVariables: this.extractTemplateVariables(optimized),
+        contextSuggestions: this.generateContextSuggestions(analysis),
       };
 
     } catch (error) {
@@ -425,6 +440,54 @@ export class PromptOptimizer {
   }
 
   // Helper methods
+
+  private generateSystemPrompt(domain?: string): string {
+    const basePrompt = "You are an expert assistant";
+    if (!domain) return basePrompt;
+    
+    const domainPrompts: Record<string, string> = {
+      'sql': 'You are an expert database architect and SQL specialist',
+      'branding': 'You are a professional branding and marketing expert',
+      'cine': 'You are an expert screenwriter and film industry professional',
+      'saas': 'You are a SaaS product development and business strategy expert',
+      'devops': 'You are a DevOps and infrastructure engineering expert',
+      'general': 'You are a helpful and knowledgeable assistant'
+    };
+    
+    return domainPrompts[domain] || basePrompt;
+  }
+
+  private extractTemplateVariables(text: string): string[] {
+    const variables: string[] = [];
+    const matches = text.match(/\{\{(\w+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        const variable = match.replace(/\{\{|\}\}/g, '');
+        if (!variables.includes(variable)) {
+          variables.push(variable);
+        }
+      });
+    }
+    return variables;
+  }
+
+  private generateContextSuggestions(analysis: AnalysisResult): string[] {
+    const suggestions: string[] = [];
+    
+    if (analysis.ambiguityScore > 0.5) {
+      suggestions.push('Consider being more specific about requirements');
+    }
+    
+    if (analysis.complexity < 0.3) {
+      suggestions.push('Add more technical details for better clarity');
+    }
+    
+    if (analysis.domainHints.length === 0) {
+      suggestions.push('Specify the domain or context for better optimization');
+    }
+    
+    return suggestions;
+  }
 
   private splitIntoSentences(text: string): string[] {
     // Simple sentence splitting - could be improved with more sophisticated NLP

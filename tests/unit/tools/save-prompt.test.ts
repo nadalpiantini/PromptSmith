@@ -281,7 +281,6 @@ describe('save_prompt tool', () => {
           ...metadata,
           name: 'Test Prompt',
           isPublic: false, // Default value
-          version: '1.0.0', // Default value
         },
       });
       mockOrchestrator.save.mockResolvedValueOnce(mockSaved);
@@ -356,7 +355,7 @@ describe('save_prompt tool', () => {
 
       for (const version of versions) {
         const mockSaved = createMockSavedPrompt({
-          metadata: { name: 'Test', domain: 'general', version }
+          metadata: { name: 'Test', domain: 'general' }
         });
         mockOrchestrator.save.mockResolvedValueOnce(mockSaved);
 
