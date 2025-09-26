@@ -359,6 +359,83 @@ export class TemplateManager {
           explanation: 'Complete CI/CD pipeline specification'
         }
       ],
+      [PromptDomain.MOBILE]: [
+        {
+          input: 'Create mobile app navigation',
+          output: 'Implement bottom tab navigation with Home, Search, Profile, and Settings screens using React Navigation.',
+          explanation: 'Standard mobile app navigation pattern'
+        }
+      ],
+      [PromptDomain.WEB]: [
+        {
+          input: 'Build responsive landing page',
+          output: 'Create a mobile-first responsive landing page with hero section, features grid, and call-to-action using CSS Grid and Flexbox.',
+          explanation: 'Modern web development approach'
+        }
+      ],
+      [PromptDomain.BACKEND]: [
+        {
+          input: 'Create REST API endpoint',
+          output: 'Implement GET /api/users endpoint with pagination, filtering, and proper error handling using Express.js.',
+          explanation: 'Standard REST API implementation'
+        }
+      ],
+      [PromptDomain.FRONTEND]: [
+        {
+          input: 'Build React component',
+          output: 'Create a reusable Button component with variants (primary, secondary) and proper TypeScript types.',
+          explanation: 'Component-based frontend development'
+        }
+      ],
+      [PromptDomain.AI]: [
+        {
+          input: 'Train machine learning model',
+          output: 'Implement a supervised learning pipeline with data preprocessing, model training, validation, and deployment using scikit-learn.',
+          explanation: 'Standard ML workflow'
+        }
+      ],
+      [PromptDomain.GAMING]: [
+        {
+          input: 'Create game character system',
+          output: 'Design a character class system with attributes (health, mana, strength) and abilities using object-oriented programming.',
+          explanation: 'Game development patterns'
+        }
+      ],
+      [PromptDomain.CRYPTO]: [
+        {
+          input: 'Implement smart contract',
+          output: 'Create an ERC-20 token contract with mint, burn, and transfer functions using Solidity.',
+          explanation: 'Blockchain development standards'
+        }
+      ],
+      [PromptDomain.EDUCATION]: [
+        {
+          input: 'Design learning module',
+          output: 'Create an interactive learning module with objectives, content, assessments, and progress tracking.',
+          explanation: 'Educational content structure'
+        }
+      ],
+      [PromptDomain.HEALTHCARE]: [
+        {
+          input: 'Build patient management system',
+          output: 'Implement a HIPAA-compliant patient record system with secure data storage and access controls.',
+          explanation: 'Healthcare software requirements'
+        }
+      ],
+      [PromptDomain.FINANCE]: [
+        {
+          input: 'Create financial dashboard',
+          output: 'Build a real-time financial dashboard with charts, transactions, and budget tracking using secure APIs.',
+          explanation: 'Fintech application development'
+        }
+      ],
+      [PromptDomain.LEGAL]: [
+        {
+          input: 'Draft contract template',
+          output: 'Create a comprehensive service agreement template with terms, conditions, and legal clauses.',
+          explanation: 'Legal document structure'
+        }
+      ],
       [PromptDomain.GENERAL]: []
     };
 
