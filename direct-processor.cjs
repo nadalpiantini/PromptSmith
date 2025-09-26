@@ -249,10 +249,28 @@ ${sections.rollback}
   // Helper methods for generating comprehensive content
   processSpanishInput(raw) {
     const translations = {
+      // Sprint and project management
       'vamos a cerrar este sprint': 'complete all sprint tasks and close sprint',
       'cerrar sprint': 'close development sprint',
+      'revisa nuevamente antes de cerrar sprint': 'review before sprint closure',
+      'revisar antes de cerrar': 'review before closing',
+      
+      // Git operations
+      'bueno, pues hagamos git push commit': 'perform git commit and push',
+      'hagamos git push commit': 'perform git commit and push',
+      'git push commit': 'git commit and push',
+      'haz commit': 'make git commit',
+      'commitea': 'commit changes',
+      'pushea': 'push to repository',
+      
+      // Development tasks
       'hacer una tabla': 'create database table',
       'crear sistema': 'create system',
+      'crear componente': 'create component',
+      'hacer formulario': 'create form',
+      'crear hexagon chart': 'create hexagon chart',
+      
+      // Common actions
       'necesito': 'I need to',
       'quiero': 'I want to',
       'hazme': 'create for me',
@@ -261,13 +279,40 @@ ${sections.rollback}
       'desarrollar': 'develop',
       'diseñar': 'design',
       'construir': 'build',
-      'optimizar': 'optimize'
+      'optimizar': 'optimize',
+      'arreglar': 'fix',
+      'corregir': 'correct',
+      'mejorar': 'improve',
+      'añadir': 'add',
+      'agregar': 'add',
+      
+      // Filler words to ignore for template naming
+      'bueno': '',
+      'pues': '',
+      'entonces': '',
+      'vamos': '',
+      'venga': '',
+      'oye': '',
+      'mira': '',
+      'ok': '',
+      'vale': ''
     };
 
     let processed = raw.toLowerCase();
-    Object.keys(translations).forEach(spanish => {
-      processed = processed.replace(new RegExp(spanish, 'gi'), translations[spanish]);
+    
+    // Apply translations in order of specificity (longer phrases first)
+    const sortedKeys = Object.keys(translations).sort((a, b) => b.length - a.length);
+    sortedKeys.forEach(spanish => {
+      if (translations[spanish] !== '') {
+        processed = processed.replace(new RegExp(spanish, 'gi'), translations[spanish]);
+      } else {
+        // Remove filler words entirely
+        processed = processed.replace(new RegExp(`\\b${spanish}\\b`, 'gi'), '');
+      }
     });
+
+    // Clean up extra spaces
+    processed = processed.replace(/\s+/g, ' ').trim();
 
     return processed;
   }
@@ -275,14 +320,57 @@ ${sections.rollback}
   detectIntent(prompt) {
     if (prompt.includes('sprint') || prompt.includes('close') || prompt.includes('complete')) {
       return 'sprint_completion';
+    } else if (prompt.includes('commit') || prompt.includes('push') || prompt.includes('git')) {
+      return 'git_workflow';
     } else if (prompt.includes('create') || prompt.includes('build') || prompt.includes('develop')) {
       return 'development';
     } else if (prompt.includes('optimize') || prompt.includes('improve') || prompt.includes('enhance')) {
       return 'optimization';
     } else if (prompt.includes('test') || prompt.includes('validate') || prompt.includes('verify')) {
       return 'testing';
+    } else if (prompt.includes('review') || prompt.includes('check') || prompt.includes('audit')) {
+      return 'review';
     }
     return 'general';
+  }
+
+  generateUniversalTemplateName(processedPrompt, domain, intent) {
+    // Map intents to universal template names
+    const intentTemplates = {
+      'sprint_completion': 'sprint_closure_review',
+      'git_workflow': 'git_commit_push_workflow', 
+      'development': 'feature_development',
+      'optimization': 'performance_optimization',
+      'testing': 'testing_strategy',
+      'review': 'code_review_checklist',
+      'general': 'general_implementation'
+    };
+
+    // Extract key technical terms for domain-specific naming
+    const technicalTerms = {
+      'hexagon': 'hexagon_chart',
+      'chart': 'chart_component',
+      'dashboard': 'dashboard_component',
+      'form': 'form_component',
+      'table': 'data_table',
+      'database': 'database_schema',
+      'api': 'api_endpoint',
+      'component': 'ui_component',
+      'authentication': 'auth_system',
+      'login': 'login_flow',
+      'user': 'user_management'
+    };
+
+    // Check for technical terms first
+    for (const [term, template] of Object.entries(technicalTerms)) {
+      if (processedPrompt.includes(term)) {
+        return `${domain}_${template}`;
+      }
+    }
+
+    // Fall back to intent-based naming
+    const baseTemplate = intentTemplates[intent] || intentTemplates.general;
+    return `${domain}_${baseTemplate}`;
   }
 
   generateObjective(prompt, domain, intent) {

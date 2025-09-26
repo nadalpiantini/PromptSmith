@@ -50,83 +50,337 @@ show_help() {
     echo -e "${PURPLE}   Escalera completa: mejora → evalúa → guarda → perfecciona${NC}"
 }
 
-# Función para detectar dominio automáticamente
+# Función MEJORADA para detectar dominio con sistema de puntuación optimizado
 detect_domain() {
     local prompt="$1"
     local current_dir="$(pwd)"
-    local detected_domain="general"
-
-    # Detectar por contenido del prompt
-    if echo "$prompt" | grep -qi -E "(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|DATABASE|QUERY|SQL)"; then
-        detected_domain="sql"
-    elif echo "$prompt" | grep -qi -E "(HTML|CSS|WEBSITE|LANDING|PAGE|FRONTEND|REACT|VUE|ANGULAR)"; then
-        detected_domain="web"
-    elif echo "$prompt" | grep -qi -E "(MOBILE|APP|IOS|ANDROID|FLUTTER|REACT NATIVE)"; then
-        detected_domain="mobile"
-    elif echo "$prompt" | grep -qi -E "(API|BACKEND|SERVER|MICROSERVICE|REST|ENDPOINT)"; then
-        detected_domain="backend"
-    elif echo "$prompt" | grep -qi -E "(MACHINE LEARNING|AI|MODEL|NEURAL|DEEP LEARNING|LLM)"; then
-        detected_domain="ai"
-    elif echo "$prompt" | grep -qi -E "(GAME|GAMING|UNITY|UNREAL|GAMEPLAY)"; then
-        detected_domain="gaming"
-    elif echo "$prompt" | grep -qi -E "(BLOCKCHAIN|CRYPTO|BITCOIN|ETH|SMART CONTRACT|DEFI)"; then
-        detected_domain="crypto"
-    elif echo "$prompt" | grep -qi -E "(DEPLOY|DOCKER|KUBERNETES|CI/CD|DEVOPS|INFRASTRUCTURE)"; then
-        detected_domain="devops"
-    elif echo "$prompt" | grep -qi -E "(SAAS|SOFTWARE|SYSTEM|PLATFORM|SERVICE)"; then
-        detected_domain="saas"
-    elif echo "$prompt" | grep -qi -E "(BRAND|MARKETING|COPY|CAMPAIGN|MESSAGING)"; then
-        detected_domain="branding"
-    elif echo "$prompt" | grep -qi -E "(SCRIPT|MOVIE|FILM|SCREENPLAY|CINE)"; then
-        detected_domain="cine"
-    elif echo "$prompt" | grep -qi -E "(COURSE|EDUCATION|LEARN|TEACH|TRAINING)"; then
-        detected_domain="education"
-    elif echo "$prompt" | grep -qi -E "(HEALTH|MEDICAL|MEDICINE|PATIENT)"; then
-        detected_domain="healthcare"
-    elif echo "$prompt" | grep -qi -E "(FINANCE|BANKING|MONEY|PAYMENT|FINTECH)"; then
-        detected_domain="finance"
-    elif echo "$prompt" | grep -qi -E "(LEGAL|LAW|CONTRACT|POLICY|COMPLIANCE)"; then
-        detected_domain="legal"
+    local prompt_lower=$(echo "$prompt" | tr '[:upper:]' '[:lower:]')
+    
+    # Initialize scores using parallel arrays approach (compatible with bash 3.2)
+    local sql_score=0
+    local web_score=0
+    local mobile_score=0
+    local backend_score=0
+    local frontend_score=0
+    local ai_score=0
+    local gaming_score=0
+    local crypto_score=0
+    local devops_score=0
+    local saas_score=0
+    local branding_score=0
+    local cine_score=0
+    local education_score=0
+    local healthcare_score=0
+    local finance_score=0
+    local legal_score=0
+    
+    # SQL domain - Strong indicators
+    if echo "$prompt_lower" | grep -q -E "(select|insert|update|delete|create table|database|query|sql|postgresql|mysql|schema|join|where)"; then
+        sql_score=$((sql_score + 10))
     fi
-
-    # Detectar por archivos del proyecto actual
-    if [ "$detected_domain" = "general" ]; then
-        if [ -f "$current_dir/package.json" ]; then
-            if grep -qi "react\|vue\|angular" "$current_dir/package.json" 2>/dev/null; then
-                detected_domain="frontend"
-            elif grep -qi "express\|fastify\|koa" "$current_dir/package.json" 2>/dev/null; then
-                detected_domain="backend"
-            else
-                detected_domain="web"
-            fi
-        elif [ -f "$current_dir/requirements.txt" ] || [ -f "$current_dir/setup.py" ]; then
-            detected_domain="backend"
-        elif [ -f "$current_dir/Cargo.toml" ]; then
-            detected_domain="backend"
-        elif [ -f "$current_dir/go.mod" ]; then
-            detected_domain="backend"
-        elif [ -f "$current_dir/pubspec.yaml" ]; then
-            detected_domain="mobile"
-        elif [ -f "$current_dir/unity.exe" ] || [ -d "$current_dir/Assets" ]; then
-            detected_domain="gaming"
+    
+    # Web domain - Enhanced patterns
+    if echo "$prompt_lower" | grep -q -E "(website|landing|page|html|css|javascript|react|vue|angular|frontend|ui|ux|responsive|bootstrap|tailwind)"; then
+        web_score=$((web_score + 10))
+    fi
+    # Dashboard and analytics strongly indicate web
+    if echo "$prompt_lower" | grep -q -E "(dashboard|analytics|chart|graph|visualization|report|metrics|stats)"; then
+        web_score=$((web_score + 8))
+    fi
+    # Web UI terms
+    if echo "$prompt_lower" | grep -q -E "(interface|component|layout|design|user experience|navigation|menu)"; then
+        web_score=$((web_score + 6))
+    fi
+    # "web" should strongly indicate web domain
+    if echo "$prompt_lower" | grep -q -E "(web)"; then
+        web_score=$((web_score + 12))
+    fi
+    
+    # Mobile domain - Refined patterns (avoid "application" conflicts)
+    if echo "$prompt_lower" | grep -q -E "(mobile|ios|android|flutter|react native|swift|kotlin|app store|play store)"; then
+        mobile_score=$((mobile_score + 10))
+    fi
+    # Only count "app" if it's clearly mobile context
+    if echo "$prompt_lower" | grep -q -E "(mobile app|ios app|android app|app development|app store)"; then
+        mobile_score=$((mobile_score + 8))
+    fi
+    
+    # Backend domain - Enhanced patterns
+    if echo "$prompt_lower" | grep -q -E "(api|backend|server|microservice|rest|endpoint|service|middleware|authentication)"; then
+        backend_score=$((backend_score + 10))
+    fi
+    # Enterprise and application context
+    if echo "$prompt_lower" | grep -q -E "(enterprise|application|system|architecture|scalable|distributed|load balancer)"; then
+        backend_score=$((backend_score + 8))
+    fi
+    # Infrastructure terms
+    if echo "$prompt_lower" | grep -q -E "(infrastructure|cloud|aws|azure|gcp|node\.js|python|java|golang)"; then
+        backend_score=$((backend_score + 6))
+    fi
+    # "database design" should be backend, not SQL
+    if echo "$prompt_lower" | grep -q -E "(database design|database architecture|data modeling)"; then
+        backend_score=$((backend_score + 12))
+    fi
+    
+    # AI domain - FIXED: More specific patterns to avoid false positives
+    if echo "$prompt_lower" | grep -q -E "(machine learning|artificial intelligence|neural network|deep learning|llm|gpt|bert|transformer|pytorch|tensorflow)"; then
+        ai_score=$((ai_score + 15))  # Higher priority for core AI terms
+    fi
+    # Only "training" in AI context, not general training
+    if echo "$prompt_lower" | grep -q -E "(model training|ai training|neural training|prediction|classification|regression|dataset|algorithm|nlp|computer vision)"; then
+        ai_score=$((ai_score + 8))
+    fi
+    # FINAL FIX: "machine learning" should ALWAYS be AI, regardless of other patterns
+    if echo "$prompt_lower" | grep -q -E "(machine learning|neural network|deep learning)"; then
+        ai_score=$((ai_score + 10))  # Extra boost for strong AI terms
+    fi
+    
+    # Gaming domain
+    if echo "$prompt_lower" | grep -q -E "(game|gaming|unity|unreal|gameplay|player|level|character|3d|engine|physics)"; then
+        gaming_score=$((gaming_score + 10))
+    fi
+    
+    # Crypto domain - Enhanced patterns with context
+    if echo "$prompt_lower" | grep -q -E "(blockchain|crypto|bitcoin|ethereum|smart contract|defi|nft|web3|solidity|dapp)"; then
+        crypto_score=$((crypto_score + 10))
+    fi
+    # Distinguish crypto contracts from legal contracts
+    if echo "$prompt_lower" | grep -q -E "(smart contract|blockchain contract|ethereum contract|solidity contract)"; then
+        crypto_score=$((crypto_score + 8))
+        legal_score=$((legal_score - 5)) # Penalize legal for crypto context
+    fi
+    
+    # DevOps domain - Higher priority for devops-specific terms
+    if echo "$prompt_lower" | grep -q -E "(deploy|docker|kubernetes|ci/cd|devops|infrastructure|pipeline|helm|terraform)"; then
+        devops_score=$((devops_score + 10))
+    fi
+    # "container" in DevOps context should be strongly devops
+    if echo "$prompt_lower" | grep -q -E "(docker container|kubernetes container|container orchestration|container deployment)"; then
+        devops_score=$((devops_score + 8))
+    fi
+    # Generic "container" should still favor devops over ai
+    if echo "$prompt_lower" | grep -q -E "container" && echo "$prompt_lower" | grep -q -v -E "(machine learning|artificial intelligence|neural)"; then
+        devops_score=$((devops_score + 6))
+    fi
+    
+    # SaaS domain - Lower priority for generic "software"
+    if echo "$prompt_lower" | grep -q -E "(saas|subscription|tenant|billing|pricing)"; then
+        saas_score=$((saas_score + 10))
+    fi
+    # "software" should be lower priority unless specifically SaaS
+    if echo "$prompt_lower" | grep -q -E "(software platform|software service)" && echo "$prompt_lower" | grep -q -v -E "enterprise"; then
+        saas_score=$((saas_score + 6))
+    fi
+    
+    # Branding domain - Higher priority for branding terms
+    if echo "$prompt_lower" | grep -q -E "(brand|marketing|copy|messaging|logo|identity|creative|advertising)"; then
+        branding_score=$((branding_score + 12))
+    fi
+    # "campaign" in branding context should be strongly branding
+    if echo "$prompt_lower" | grep -q -E "(brand campaign|marketing campaign|ad campaign|advertising campaign)"; then
+        branding_score=$((branding_score + 8))
+    fi
+    # Generic "campaign" should favor branding over AI
+    if echo "$prompt_lower" | grep -q -E "campaign" && echo "$prompt_lower" | grep -q -v -E "(machine learning|artificial intelligence|neural)"; then
+        branding_score=$((branding_score + 6))
+    fi
+    
+    # Cinema domain
+    if echo "$prompt_lower" | grep -q -E "(script|movie|film|screenplay|cinema|director|scene|character|dialogue|story)"; then
+        cine_score=$((cine_score + 10))
+    fi
+    
+    # Education domain - FIXED: Only education-specific contexts, not AI contexts
+    if echo "$prompt_lower" | grep -q -E "(course|education|tutorial|lesson|curriculum|student|instructor)"; then
+        # Don't boost education if it's clearly AI context
+        if echo "$prompt_lower" | grep -q -v -E "(machine learning|artificial intelligence|neural|deep learning|model)"; then
+            education_score=$((education_score + 12))
         fi
     fi
-
-    echo "$detected_domain"
+    # "training course" should be strongly education
+    if echo "$prompt_lower" | grep -q -E "(training course|education course|learning course|teach course)"; then
+        education_score=$((education_score + 8))
+    fi
+    # Generic "training" in education context but NOT AI context
+    if echo "$prompt_lower" | grep -q -E "training" && echo "$prompt_lower" | grep -q -E "(course|education|teach)" && echo "$prompt_lower" | grep -q -v -E "(machine learning|ai|model|neural)"; then
+        education_score=$((education_score + 6))
+    fi
+    
+    # Healthcare domain
+    if echo "$prompt_lower" | grep -q -E "(health|medical|medicine|patient|doctor|hospital|clinical|diagnosis|treatment)"; then
+        healthcare_score=$((healthcare_score + 10))
+    fi
+    
+    # Finance domain
+    if echo "$prompt_lower" | grep -q -E "(finance|banking|money|payment|fintech|investment|trading|portfolio|accounting)"; then
+        finance_score=$((finance_score + 10))
+    fi
+    
+    # Legal domain - Only for non-crypto legal contexts
+    if echo "$prompt_lower" | grep -q -E "(legal|law|contract|policy|compliance|regulation|court|lawyer)"; then
+        if echo "$prompt_lower" | grep -q -v -E "(smart contract|blockchain|crypto|ethereum)"; then
+            legal_score=$((legal_score + 10))
+        fi
+    fi
+    
+    # Frontend - specific to frontend development
+    if echo "$prompt_lower" | grep -q -E "(frontend|front-end|client-side|spa|single page|webpack|vite|npm|yarn)"; then
+        frontend_score=$((frontend_score + 10))
+    fi
+    
+    # Context-based adjustments
+    if echo "$prompt_lower" | grep -q -E "responsive"; then
+        web_score=$((web_score + 5))
+        mobile_score=$((mobile_score + 3))
+    fi
+    
+    # File system context detection
+    if [ -f "$current_dir/package.json" ]; then
+        if grep -qi "react\|vue\|angular" "$current_dir/package.json" 2>/dev/null; then
+            web_score=$((web_score + 5))
+            frontend_score=$((frontend_score + 3))
+        elif grep -qi "express\|fastify\|koa\|nest" "$current_dir/package.json" 2>/dev/null; then
+            backend_score=$((backend_score + 5))
+        fi
+    elif [ -f "$current_dir/requirements.txt" ] || [ -f "$current_dir/setup.py" ]; then
+        backend_score=$((backend_score + 3))
+    elif [ -f "$current_dir/Cargo.toml" ]; then
+        backend_score=$((backend_score + 3))
+    elif [ -f "$current_dir/go.mod" ]; then
+        backend_score=$((backend_score + 3))
+    elif [ -f "$current_dir/pubspec.yaml" ]; then
+        mobile_score=$((mobile_score + 5))
+    elif [ -f "$current_dir/unity.exe" ] || [ -d "$current_dir/Assets" ]; then
+        gaming_score=$((gaming_score + 5))
+    fi
+    
+    # Find the domain with highest score
+    local max_score=0
+    local best_domain="general"
+    
+    # Check each domain score
+    if [ $sql_score -gt $max_score ]; then
+        max_score=$sql_score
+        best_domain="sql"
+    fi
+    if [ $web_score -gt $max_score ]; then
+        max_score=$web_score
+        best_domain="web"
+    fi
+    if [ $mobile_score -gt $max_score ]; then
+        max_score=$mobile_score
+        best_domain="mobile"
+    fi
+    if [ $backend_score -gt $max_score ]; then
+        max_score=$backend_score
+        best_domain="backend"
+    fi
+    if [ $frontend_score -gt $max_score ]; then
+        max_score=$frontend_score
+        best_domain="frontend"
+    fi
+    if [ $ai_score -gt $max_score ]; then
+        max_score=$ai_score
+        best_domain="ai"
+    fi
+    if [ $gaming_score -gt $max_score ]; then
+        max_score=$gaming_score
+        best_domain="gaming"
+    fi
+    if [ $crypto_score -gt $max_score ]; then
+        max_score=$crypto_score
+        best_domain="crypto"
+    fi
+    if [ $devops_score -gt $max_score ]; then
+        max_score=$devops_score
+        best_domain="devops"
+    fi
+    if [ $saas_score -gt $max_score ]; then
+        max_score=$saas_score
+        best_domain="saas"
+    fi
+    if [ $branding_score -gt $max_score ]; then
+        max_score=$branding_score
+        best_domain="branding"
+    fi
+    if [ $cine_score -gt $max_score ]; then
+        max_score=$cine_score
+        best_domain="cine"
+    fi
+    if [ $education_score -gt $max_score ]; then
+        max_score=$education_score
+        best_domain="education"
+    fi
+    if [ $healthcare_score -gt $max_score ]; then
+        max_score=$healthcare_score
+        best_domain="healthcare"
+    fi
+    if [ $finance_score -gt $max_score ]; then
+        max_score=$finance_score
+        best_domain="finance"
+    fi
+    if [ $legal_score -gt $max_score ]; then
+        max_score=$legal_score
+        best_domain="legal"
+    fi
+    
+    # If no clear winner (score < 6), default to general or use secondary logic
+    if [ $max_score -lt 6 ]; then
+        # Secondary logic for common patterns that might be missed
+        if echo "$prompt_lower" | grep -q -E "(web|site|page)"; then
+            best_domain="web"
+        elif echo "$prompt_lower" | grep -q -E "(server|backend|api)"; then
+            best_domain="backend"
+        elif echo "$prompt_lower" | grep -q -E "(app)" && echo "$prompt_lower" | grep -q -v -E "(web|site)"; then
+            best_domain="mobile"
+        else
+            best_domain="general"
+        fi
+    fi
+    
+    echo "$best_domain"
 }
 
-# Función para generar nombre de template automático
+# Función para generar nombre de template automático INTELIGENTE
 generate_template_name() {
     local prompt="$1"
     local domain="$2"
 
-    # Extraer palabras clave principales
-    local keywords=$(echo "$prompt" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9 ]//g' | awk '{for(i=1;i<=NF;i++) if(length($i)>3) print $i}' | head -3 | tr '\n' '_')
+    # Limpiar prompt removiendo palabras de relleno
+    local cleaned_prompt=$(echo "$prompt" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9 ]//g')
+    
+    # Remover palabras de relleno en español
+    cleaned_prompt=$(echo "$cleaned_prompt" | sed -E 's/\b(bueno|pues|entonces|vamos|venga|oye|mira|ok|vale|hagamos|por|favor|que|de|la|el|en|con|para|un|una|del|las|los)\b//g')
+    
+    # Mapear frases comunes a nombres universales
+    if echo "$cleaned_prompt" | grep -q "git.*commit\|commit.*push\|push.*commit"; then
+        echo "${domain}_git_commit_push_workflow"
+        return
+    elif echo "$cleaned_prompt" | grep -q "revisa.*antes.*cerrar\|review.*before.*clos"; then
+        echo "${domain}_sprint_closure_review"
+        return  
+    elif echo "$cleaned_prompt" | grep -q "hexagon.*chart"; then
+        echo "${domain}_hexagon_chart_component"
+        return
+    elif echo "$cleaned_prompt" | grep -q "create.*login\|login.*form"; then
+        echo "${domain}_login_form_component"
+        return
+    elif echo "$cleaned_prompt" | grep -q "dashboard"; then
+        echo "${domain}_dashboard_component"
+        return
+    fi
+    
+    # Extraer palabras clave técnicas (solo palabras >3 caracteres, máximo 3)
+    local keywords=$(echo "$cleaned_prompt" | awk '{for(i=1;i<=NF;i++) if(length($i)>3) print $i}' | head -3 | tr '\n' '_')
     keywords=${keywords%_}  # Remover último underscore
+    
+    # Si no hay keywords suficientes, usar términos por defecto
+    if [ -z "$keywords" ] || [ ${#keywords} -lt 4 ]; then
+        keywords="feature_implementation"
+    fi
 
-    # Generar nombre con timestamp
-    local timestamp=$(date +%m%d)
-    local template_name="${domain}_${keywords}_${timestamp}"
+    # Generar nombre sin timestamp para reusabilidad
+    local template_name="${domain}_${keywords}"
 
     echo "$template_name"
 }
@@ -134,6 +388,43 @@ generate_template_name() {
 # Verificar si se pidió ayuda o comandos especiales
 if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     show_help
+    exit 0
+fi
+
+# Manejar modo --max para prompts ultra-detallados  
+if [[ "$1" == "--max" ]]; then
+    if [ -z "$2" ]; then
+        echo -e "${RED}❌ Error: Debes proporcionar un prompt para el modo MAX${NC}"
+        echo "Uso: pimpprompt --max \"tu prompt aquí\""
+        exit 1
+    fi
+    
+    echo -e "${BLUE}${BOLD}🚀 pimpprompt: Modo MAX - Prompts Ultra-Detallados${NC}"
+    echo -e "${CYAN}📝 Prompt:${NC} $2"
+    echo -e "${PURPLE}⚡ Modo MAX activado: Generando prompt máximo de 2000+ palabras${NC}"
+    echo ""
+    
+    # Detección automática de contexto
+    echo -e "${YELLOW}🧠 Paso 1: Detectando contexto automáticamente...${NC}"
+    DOMAIN=$(detect_domain "$2")
+    echo -e "${GREEN}   ✅ Dominio detectado:${NC} $DOMAIN"
+    
+    # Generar nombre de template automático
+    TEMPLATE_NAME=$(generate_template_name "$2" "$DOMAIN")
+    echo -e "${GREEN}   💾 Template generado:${NC} ${TEMPLATE_NAME}_MAX"
+    echo ""
+    
+    # Resolver el path real del script
+    if [[ -L "$0" ]]; then
+        REAL_PATH="$(readlink -f "$0" 2>/dev/null || readlink "$0")"
+        SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+    else
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
+    cd "$SCRIPT_DIR"
+    
+    # Ejecutar con modo MAX
+    node "$SCRIPT_DIR/process-prompt.cjs" "$2" "$DOMAIN" "${TEMPLATE_NAME}_MAX" "MAX"
     exit 0
 fi
 
@@ -148,7 +439,13 @@ if [[ "$1" == "--search" ]]; then
     echo -e "${BLUE}${BOLD}🔍 Buscando templates: ${NC}$2"
     echo ""
     
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0" 2>/dev/null || echo "$0")")" && pwd)"
+    # Resolver correctamente el path del script (mismo patrón que el principal)
+    if [[ -L "$0" ]]; then
+        REAL_PATH="$(readlink -f "$0" 2>/dev/null || readlink "$0")"
+        SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+    else
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
     cd "$SCRIPT_DIR"
     
     node -e "
@@ -186,7 +483,13 @@ if [[ "$1" == "--list" ]]; then
     fi
     echo ""
     
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0" 2>/dev/null || echo "$0")")" && pwd)"
+    # Resolver correctamente el path del script (mismo patrón que el principal)
+    if [[ -L "$0" ]]; then
+        REAL_PATH="$(readlink -f "$0" 2>/dev/null || readlink "$0")"
+        SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+    else
+        SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
     cd "$SCRIPT_DIR"
     
     node -e "
@@ -240,7 +543,7 @@ echo -e "${BLUE}${BOLD}🚀 pimpprompt: Escalera de Proceso Inteligente${NC}"
 echo -e "${CYAN}📝 Prompt:${NC} $PROMPT"
 echo ""
 
-# Paso 1: Detección automática de contexto
+# Paso 1: Detección automática de contexto (MEJORADA)
 echo -e "${YELLOW}🧠 Paso 1: Detectando contexto automáticamente...${NC}"
 DOMAIN=$(detect_domain "$PROMPT")
 echo -e "${GREEN}   ✅ Dominio detectado:${NC} $DOMAIN"
@@ -252,8 +555,9 @@ echo ""
 
 # Ejecutar PromptSmith - Resolver el path real del script
 if [[ -L "$0" ]]; then
-    # Si es un symlink, obtener el path real
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink "$0")")" && pwd)"
+    # Si es un symlink, obtener el path real correctamente
+    REAL_PATH="$(readlink -f "$0" 2>/dev/null || readlink "$0")"
+    SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
 else
     # Si no es un symlink, obtener el path normal
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
