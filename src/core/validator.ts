@@ -945,6 +945,7 @@ export class PromptValidator {
       domainHints: this.detectDomainHints(prompt),
       technicalTerms: techTerms,
       sentimentScore: 0.5,
+      estimatedTokens: words.length,
     };
   }
 

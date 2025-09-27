@@ -350,7 +350,7 @@ export class ObservabilityService extends TelemetryService {
         .map(([k, v]) => `${k}="${v}"`)
         .join(',')}} ${metric.value} ${metric.timestamp}`;
 
-      console.log('Prometheus metric:', prometheusFormat);
+      // Prometheus metric: ${prometheusFormat}
 
     } catch (error) {
       console.warn('Failed to send metric to Prometheus:', error);

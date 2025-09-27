@@ -54,6 +54,8 @@ export default {
   ],
   
   // Setup files
+  globalSetup: '<rootDir>/tests/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/global-teardown.ts',
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   
   // Module resolution

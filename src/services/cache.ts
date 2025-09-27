@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { logger } from '../utils/logger.js';
 
 export interface CacheStats {
   hits: number;
@@ -31,7 +32,7 @@ export class CacheService {
                           process.env.NODE_ENV === 'development';
 
     if (this.developmentMode) {
-      console.log('CacheService: Running in development/offline mode - using in-memory cache');
+      // CacheService: Using in-memory cache (development/offline mode)
       this.redis = null;
       return;
     }
@@ -45,23 +46,25 @@ export class CacheService {
         lazyConnect: true,
         keepAlive: 30000,
         connectTimeout: 10000,
-        commandTimeout: 5000
+        commandTimeout: 5000,
+        enableReadyCheck: true,
+        family: 4
       });
 
       this.redis.on('connect', () => {
-        console.log('Redis connected successfully');
+        // Redis connected successfully (pooled connection)
       });
 
       this.redis.on('error', (error) => {
-        console.error('Redis connection error:', error);
+        logger.error('Redis connection error:', error);
       });
 
       this.redis.on('reconnecting', () => {
-        console.log('Redis reconnecting...');
+        // Redis reconnecting with circuit breaker
       });
 
     } catch (error) {
-      console.error('Failed to initialize Redis:', error);
+      logger.error('Failed to initialize Redis:', error);
       throw new Error('Cache service initialization failed');
     }
   }
@@ -99,7 +102,7 @@ export class CacheService {
         try {
           return JSON.parse(cached) as T;
         } catch (parseError) {
-          console.error('Failed to parse cached value:', parseError);
+          logger.error('Failed to parse cached value:', parseError);
           // Return raw string if JSON parsing fails
           return cached as T;
         }
@@ -108,7 +111,7 @@ export class CacheService {
       return cached as T;
 
     } catch (error) {
-      console.error('Cache get operation failed:', error);
+      logger.error('Cache get operation failed:', error);
       this.stats.misses++;
       return null;
     }
@@ -145,7 +148,7 @@ export class CacheService {
         try {
           serializedValue = JSON.stringify(value);
         } catch (serializeError) {
-          console.error('Failed to serialize cache value:', serializeError);
+          logger.error('Failed to serialize cache value:', serializeError);
           serializedValue = String(value);
         }
       } else {
@@ -157,7 +160,7 @@ export class CacheService {
       return result === 'OK';
 
     } catch (error) {
-      console.error('Cache set operation failed:', error);
+      logger.error('Cache set operation failed:', error);
       return false;
     }
   }
@@ -168,7 +171,7 @@ export class CacheService {
       const exists = await this.redis.exists(fullKey);
       return exists === 1;
     } catch (error) {
-      console.error('Cache has operation failed:', error);
+      logger.error('Cache has operation failed:', error);
       return false;
     }
   }
@@ -179,7 +182,7 @@ export class CacheService {
       const deleted = await this.redis.del(fullKey);
       return deleted === 1;
     } catch (error) {
-      console.error('Cache delete operation failed:', error);
+      logger.error('Cache delete operation failed:', error);
       return false;
     }
   }
@@ -196,7 +199,7 @@ export class CacheService {
       const deleted = await this.redis.del(...keys);
       return deleted;
     } catch (error) {
-      console.error('Cache deletePattern operation failed:', error);
+      logger.error('Cache deletePattern operation failed:', error);
       return 0;
     }
   }
@@ -216,7 +219,7 @@ export class CacheService {
       const deleted = await this.redis.del(...keys);
       return deleted > 0;
     } catch (error) {
-      console.error('Cache clear operation failed:', error);
+      logger.error('Cache clear operation failed:', error);
       return false;
     }
   }
@@ -226,7 +229,7 @@ export class CacheService {
       const fullKey = this.buildKey(key, namespace);
       return await this.redis.ttl(fullKey);
     } catch (error) {
-      console.error('Cache getTTL operation failed:', error);
+      logger.error('Cache getTTL operation failed:', error);
       return -1;
     }
   }
@@ -237,7 +240,7 @@ export class CacheService {
       const result = await this.redis.expire(fullKey, ttl);
       return result === 1;
     } catch (error) {
-      console.error('Cache extend operation failed:', error);
+      logger.error('Cache extend operation failed:', error);
       return false;
     }
   }
@@ -266,7 +269,7 @@ export class CacheService {
         memoryUsage
       };
     } catch (error) {
-      console.error('Cache getStats operation failed:', error);
+      logger.error('Cache getStats operation failed:', error);
       return {
         hits: this.stats.hits,
         misses: this.stats.misses,
@@ -298,12 +301,12 @@ export class CacheService {
         try {
           return JSON.parse(value) as T;
         } catch (parseError) {
-          console.error(`Failed to parse cached value for key ${keys[index]}:`, parseError);
+          logger.error(`Failed to parse cached value for key ${keys[index]}:`, parseError);
           return value as T;
         }
       });
     } catch (error) {
-      console.error('Cache mget operation failed:', error);
+      logger.error('Cache mget operation failed:', error);
       this.stats.misses += keys.length;
       return keys.map(() => null);
     }
@@ -328,7 +331,7 @@ export class CacheService {
       const results = await pipeline.exec();
       return results?.every(([error, result]) => error === null && result === 'OK') || false;
     } catch (error) {
-      console.error('Cache mset operation failed:', error);
+      logger.error('Cache mset operation failed:', error);
       return false;
     }
   }
@@ -339,7 +342,7 @@ export class CacheService {
       const fullKey = this.buildKey(key, namespace);
       return await this.redis.incrby(fullKey, amount);
     } catch (error) {
-      console.error('Cache increment operation failed:', error);
+      logger.error('Cache increment operation failed:', error);
       return 0;
     }
   }
@@ -354,7 +357,7 @@ export class CacheService {
       const result = await this.redis!.ping();
       return result === 'PONG';
     } catch (error) {
-      console.error('Cache ping failed:', error);
+      logger.error('Cache ping failed:', error);
       return false;
     }
   }
@@ -369,7 +372,7 @@ export class CacheService {
       
       await this.redis!.quit();
     } catch (error) {
-      console.error('Error disconnecting from Redis:', error);
+      logger.error('Error disconnecting from Redis:', error);
     }
   }
 
@@ -409,7 +412,7 @@ export class CacheService {
       const result = await this.redis.set(lockKey, '1', 'EX', ttl, 'NX');
       return result === 'OK';
     } catch (error) {
-      console.error('Cache lock operation failed:', error);
+      logger.error('Cache lock operation failed:', error);
       return false;
     }
   }
@@ -420,7 +423,7 @@ export class CacheService {
       const deleted = await this.redis.del(lockKey);
       return deleted === 1;
     } catch (error) {
-      console.error('Cache unlock operation failed:', error);
+      logger.error('Cache unlock operation failed:', error);
       return false;
     }
   }

@@ -16,6 +16,8 @@ import {
   ComparisonResult,
   PromptDomain,
   PromptTone,
+  SaveMetadata,
+  SearchParams,
 } from '../../src/types/prompt';
 
 // Export TEST_CONSTANTS from the centralized file
@@ -53,6 +55,7 @@ export function createMockAnalysisResult(overrides?: Partial<AnalysisResult>): A
     sentimentScore: 0.05,
     readabilityScore: 0.8,
     technicalTerms: ['table', 'user'],
+    estimatedTokens: 4,
     ...overrides,
   };
 }
@@ -252,22 +255,32 @@ export function createMockComparisonResult(overrides?: Partial<ComparisonResult>
 }
 
 // Mock service factories
-export function createMockOrchestrator() {
+export function createMockOrchestrator(): any {
   return {
-    process: jest.fn<any>().mockResolvedValue(createMockProcessResult()),
-    evaluate: jest.fn<any>().mockResolvedValue(createMockEvaluationResult()),
-    compare: jest.fn<any>().mockResolvedValue(createMockComparisonResult()),
-    save: jest.fn<any>().mockResolvedValue(createMockSavedPrompt()),
-    search: jest.fn<any>().mockResolvedValue([createMockSearchResult()]),
+    process: (jest.fn() as any).mockResolvedValue(createMockProcessResult()),
+    evaluate: (jest.fn() as any).mockResolvedValue(createMockEvaluationResult()),
+    compare: (jest.fn() as any).mockResolvedValue(createMockComparisonResult()),
+    save: (jest.fn() as any).mockResolvedValue(createMockSavedPrompt()),
+    search: (jest.fn() as any).mockResolvedValue([createMockSearchResult()]),
+    getById: (jest.fn() as any).mockResolvedValue(createMockSavedPrompt()),
+    getStats: (jest.fn() as any).mockResolvedValue({
+      totalProcessed: 100,
+      totalSaved: 50,
+      averageQuality: 0.75,
+      cacheHitRate: 0.60,
+      uptime: process.uptime(),
+      topDomain: 'general'
+    }),
+    validate: (jest.fn() as any).mockResolvedValue(createMockValidationResult()),
   };
 }
 
-export function createMockStoreService() {
+export function createMockStoreService(): any {
   return {
-    save: jest.fn<any>().mockResolvedValue(createMockSavedPrompt()),
-    getById: jest.fn<any>().mockResolvedValue(createMockSavedPrompt()),
-    search: jest.fn<any>().mockResolvedValue([createMockSearchResult()]),
-    getStats: jest.fn<any>().mockResolvedValue({
+    save: (jest.fn() as any).mockResolvedValue(createMockSavedPrompt()),
+    getById: (jest.fn() as any).mockResolvedValue(createMockSavedPrompt()),
+    search: (jest.fn() as any).mockResolvedValue([createMockSearchResult()]),
+    getStats: (jest.fn() as any).mockResolvedValue({
       totalPrompts: 150,
       totalDomains: 6,
       avgQualityScore: 0.78,
@@ -276,11 +289,11 @@ export function createMockStoreService() {
   };
 }
 
-export function createMockTelemetryService() {
+export function createMockTelemetryService(): any {
   return {
-    track: jest.fn<any>().mockResolvedValue(undefined),
-    error: jest.fn<any>().mockResolvedValue(undefined),
-    getStats: jest.fn<any>().mockResolvedValue({
+    track: (jest.fn() as any).mockResolvedValue(undefined),
+    error: (jest.fn() as any).mockResolvedValue(undefined),
+    getStats: (jest.fn() as any).mockResolvedValue({
       events: 250,
       errors: 5,
       avgProcessingTime: 1200,
@@ -289,17 +302,28 @@ export function createMockTelemetryService() {
   };
 }
 
-export function createMockServices() {
+export function createMockCacheService(): any {
+  return {
+    get: (jest.fn() as any).mockResolvedValue(null),
+    set: (jest.fn() as any).mockResolvedValue(true),
+    delete: (jest.fn() as any).mockResolvedValue(true),
+    clear: (jest.fn() as any).mockResolvedValue(undefined),
+    has: (jest.fn() as any).mockResolvedValue(false),
+  };
+}
+
+export function createMockServices(): any {
   return {
     store: createMockStoreService(),
     telemetry: createMockTelemetryService(),
-    healthCheck: jest.fn<any>().mockResolvedValue({
+    cache: createMockCacheService(),
+    healthCheck: (jest.fn() as any).mockResolvedValue({
       status: 'healthy',
       uptime: 86400,
       database: 'connected',
       cache: 'available',
     }),
-    shutdown: jest.fn<any>().mockResolvedValue(undefined),
+    shutdown: (jest.fn() as any).mockResolvedValue(undefined),
   };
 }
 

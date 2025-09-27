@@ -6,6 +6,7 @@ import { ScoreService } from '../services/score.js';
 import { StoreService } from '../services/store.js';
 import { CacheService } from '../services/cache.js';
 import { TelemetryService } from '../services/telemetry.js';
+import { ObservabilityService } from '../services/observability.js';
 import {
   ProcessInput,
   ProcessResult,
@@ -30,6 +31,7 @@ export class PromptOrchestrator {
   private store: StoreService;
   private cache: CacheService;
   private telemetry: TelemetryService;
+  private observability: ObservabilityService;
 
   constructor() {
     this.analyzer = new PromptAnalyzer();
@@ -40,11 +42,15 @@ export class PromptOrchestrator {
     this.store = new StoreService();
     this.cache = new CacheService();
     this.telemetry = new TelemetryService();
+    this.observability = new ObservabilityService();
   }
 
   async process(input: ProcessInput): Promise<ProcessResult> {
     const startTime = Date.now();
     let cacheHit = false;
+
+    // Start distributed tracing span
+    const spanId = await this.observability.startSpan('prompt_processing');
 
     try {
       // 1. Check cache first
@@ -56,16 +62,27 @@ export class PromptOrchestrator {
           domain: input.domain,
           cacheKey,
         });
+        await this.observability.addSpanLog(spanId, { step: 'cache_hit', cache_key: cacheKey });
+        await this.observability.finishSpan(spanId, { cache_hit: true, result: 'success' });
         return cached;
       }
+      
+      await this.observability.addSpanLog(spanId, { step: 'cache_miss', cache_key: cacheKey });
 
       // 2. Analyze the input prompt
+      await this.observability.addSpanLog(spanId, { step: 'analysis_start' });
       this.telemetry.track('analysis_start', { domain: input.domain });
       const analysis = await this.analyzer.analyze(input.raw);
       this.telemetry.track('analysis_complete', {
         domain: input.domain,
         complexity: analysis.complexity,
         ambiguityScore: analysis.ambiguityScore,
+      });
+      await this.observability.addSpanLog(spanId, { 
+        step: 'analysis_complete', 
+        complexity: analysis.complexity,
+        ambiguity_score: analysis.ambiguityScore,
+        tokens: analysis.estimatedTokens
       });
 
       // 3. Apply domain-specific refinement rules
@@ -77,7 +94,7 @@ export class PromptOrchestrator {
       );
       this.telemetry.track('refinement_complete', {
         domain: input.domain,
-        rulesApplied: refinementResult.rulesApplied.length,
+        rulesApplied: refinementResult.rulesApplied?.length || 0,
       });
 
       // 4. Optimize the prompt structure and content
@@ -89,7 +106,7 @@ export class PromptOrchestrator {
       );
       this.telemetry.track('optimization_complete', {
         domain: input.domain,
-        improvements: optimizationResult.improvements.length,
+        improvements: optimizationResult.improvements?.length || 0,
       });
 
       // 5. Generate template if requested
@@ -156,8 +173,8 @@ export class PromptOrchestrator {
         score,
         validation,
         suggestions: this.compileSuggestions(
-          optimizationResult.improvements,
-          validation.suggestions,
+          optimizationResult.improvements || [],
+          validation.suggestions || [],
           score
         ),
         metadata: {
@@ -168,8 +185,8 @@ export class PromptOrchestrator {
           ...(input.targetModel && { modelUsed: input.targetModel }),
           cacheHit,
           rulesApplied: [
-            ...refinementResult.rulesApplied.map(rule => typeof rule === 'string' ? rule : rule.ruleId),
-            ...optimizationResult.rulesApplied,
+            ...(refinementResult.rulesApplied || []).map(rule => typeof rule === 'string' ? rule : rule.ruleId),
+            ...(optimizationResult.rulesApplied || []),
           ],
           ...(templateResult?.type && { templateUsed: templateResult.type }),
         },
@@ -188,15 +205,121 @@ export class PromptOrchestrator {
         cacheHit,
       });
 
+      // 13. Record performance metrics and finish span
+      await this.observability.recordMetric(
+        'prompt_processing_duration',
+        processingTime,
+        'histogram',
+        { domain: input.domain, cache_hit: cacheHit.toString() }
+      );
+      
+      await this.observability.recordMetric(
+        'prompt_quality_score',
+        result.score.overall,
+        'gauge',
+        { domain: input.domain }
+      );
+
+      await this.observability.addSpanLog(spanId, { 
+        step: 'processing_complete',
+        processing_time: processingTime,
+        quality_score: result.score.overall,
+        cache_hit: cacheHit
+      });
+
+      await this.observability.finishSpan(spanId, { 
+        result: 'success',
+        processing_time: processingTime,
+        quality_score: result.score.overall,
+        cache_hit: cacheHit
+      });
+
       return result;
 
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // Track error in observability stack
+      await this.observability.trackError(error as Error, {
+        domain: input.domain,
+        processing_time: processingTime,
+        input_length: input.raw.length,
+        step: 'processing_pipeline'
+      });
+      
+      await this.observability.addSpanLog(spanId, { 
+        step: 'error_occurred',
+        error_message: (error as Error).message,
+        processing_time: processingTime
+      });
+      
+      await this.observability.finishSpan(spanId, { 
+        result: 'error',
+        error_type: (error as Error).constructor.name,
+        processing_time: processingTime
+      });
+      
       await this.telemetry.error('processing_error', error, {
         domain: input.domain,
         processingTime,
         inputLength: input.raw.length,
       });
+      
+      // Circuit breaker: provide fallback response for critical failures
+      if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
+        console.warn('Database connection failed, providing fallback response');
+        
+        // Return a basic fallback result
+        return {
+          original: input.raw,
+          refined: input.raw, // No refinement available
+          score: {
+            clarity: 0.5,
+            specificity: 0.5, 
+            structure: 0.5,
+            completeness: 0.5,
+            overall: 0.5
+          },
+          analysis: {
+            tokens: [],
+            entities: [],
+            intent: { category: 'unknown', confidence: 0, subcategories: [] },
+            complexity: 0.5,
+            ambiguityScore: 0.5,
+            hasVariables: false,
+            language: 'en',
+            domainHints: [],
+            sentimentScore: 0.5,
+            readabilityScore: 0.5,
+            technicalTerms: [],
+            estimatedTokens: input.raw.split(' ').length
+          },
+          validation: {
+            isValid: true,
+            errors: [],
+            warnings: [],
+            suggestions: [],
+            qualityMetrics: {
+              clarity: 0.5,
+              specificity: 0.5,
+              structure: 0.5,
+              completeness: 0.5,
+              consistency: 0.5,
+              actionability: 0.5
+            }
+          },
+          system: 'System operating in fallback mode.',
+          suggestions: ['System is in offline mode - basic response provided'],
+          metadata: {
+            domain: input.domain,
+            processingTime,
+            version: '1.0.0',
+            cacheHit: false,
+            rulesApplied: []
+          }
+        };
+      }
+      
       throw error;
     }
   }

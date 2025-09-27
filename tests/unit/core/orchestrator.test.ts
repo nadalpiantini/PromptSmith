@@ -24,38 +24,61 @@ import {
   createMockQualityScore
 } from '../../utils/test-helpers';
 
-// Mock all services
-jest.mock('../../../src/services/index', () => ({
-  services: {
-    cache: {
-      get: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn(),
-      clear: jest.fn()
-    },
-    store: {
-      save: jest.fn(),
-      search: jest.fn(),
-      get: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn()
-    },
-    telemetry: {
-      track: jest.fn(),
-      error: jest.fn(),
-      performance: jest.fn()
-    },
-    refine: {
-      refine: jest.fn()
-    },
-    score: {
-      score: jest.fn()
-    },
-    template: {
-      render: jest.fn(),
-      compile: jest.fn()
-    }
-  }
+// Mock individual services
+jest.mock('../../../src/services/cache', () => ({
+  CacheService: jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(true),
+    delete: jest.fn().mockResolvedValue(true),
+    clear: jest.fn().mockResolvedValue(undefined),
+    has: jest.fn().mockResolvedValue(false),
+  }))
+}));
+
+jest.mock('../../../src/services/store', () => ({
+  StoreService: jest.fn().mockImplementation(() => ({
+    save: jest.fn().mockResolvedValue(createMockSavedPrompt()),
+    getById: jest.fn().mockResolvedValue(createMockSavedPrompt()),
+    search: jest.fn().mockResolvedValue([createMockSearchResult()]),
+    getStats: jest.fn().mockResolvedValue({
+      totalPrompts: 150,
+      totalDomains: 6,
+      avgQualityScore: 0.78,
+      topDomains: ['sql', 'general', 'saas'],
+    }),
+  }))
+}));
+
+jest.mock('../../../src/services/telemetry', () => ({
+  TelemetryService: jest.fn().mockImplementation(() => ({
+    track: jest.fn().mockResolvedValue(undefined),
+    error: jest.fn().mockResolvedValue(undefined),
+    getStats: jest.fn().mockResolvedValue({
+      events: 250,
+      errors: 5,
+      avgProcessingTime: 1200,
+      successRate: 0.98,
+    }),
+  }))
+}));
+
+jest.mock('../../../src/services/refine', () => ({
+  RefineService: jest.fn().mockImplementation(() => ({
+    refine: jest.fn().mockResolvedValue('Refined prompt')
+  }))
+}));
+
+jest.mock('../../../src/services/score', () => ({
+  ScoreService: jest.fn().mockImplementation(() => ({
+    score: jest.fn().mockResolvedValue(createMockQualityScore())
+  }))
+}));
+
+jest.mock('../../../src/services/observability', () => ({
+  ObservabilityService: jest.fn().mockImplementation(() => ({
+    track: jest.fn().mockResolvedValue(undefined),
+    error: jest.fn().mockResolvedValue(undefined),
+  }))
 }));
 
 // Mock core components
@@ -92,10 +115,14 @@ describe('PromptOrchestrator', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const { services } = await import('../../../src/services/index');
-    mockCache = services.cache;
-    mockStore = services.store;
-    mockTelemetry = services.telemetry;
+    // Get mock instances from the mocked constructors
+    const { CacheService } = await import('../../../src/services/cache');
+    const { StoreService } = await import('../../../src/services/store');
+    const { TelemetryService } = await import('../../../src/services/telemetry');
+
+    mockCache = new (CacheService as any)();
+    mockStore = new (StoreService as any)();
+    mockTelemetry = new (TelemetryService as any)();
 
     orchestrator = new PromptOrchestrator();
   });

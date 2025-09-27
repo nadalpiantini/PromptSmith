@@ -57,7 +57,8 @@ export class TemplateManager {
           domainHints: [],
           sentimentScore: 0.5,
           readabilityScore: 0.5,
-          technicalTerms: []
+          technicalTerms: [],
+          estimatedTokens: options.prompt?.split(' ').length || 0
         },
         ...(options.context && { userContext: options.context }),
       };

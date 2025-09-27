@@ -75,6 +75,7 @@ export class PromptAnalyzer {
         sentimentScore,
         readabilityScore,
         technicalTerms,
+        estimatedTokens: tokens.length,
       };
 
     } catch (error) {

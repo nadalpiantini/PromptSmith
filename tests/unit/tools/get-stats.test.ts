@@ -3,8 +3,6 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PromptSmithServer } from '../../../src/server/index';
-import { services } from '../../../src/services/index';
 import {
   measurePerformance,
   expectWithinPerformanceThreshold,
@@ -16,23 +14,21 @@ import { setupMockEnvironment } from '../../utils/mock-services';
 // Mock external services
 setupMockEnvironment();
 
+// Mock the services module BEFORE importing anything
+const mockServices = createMockServices();
+jest.mock('../../../src/services/index', () => ({
+  services: mockServices,
+}));
+
+// Import server after mocking
+import { PromptSmithServer } from '../../../src/server/index';
+
 describe('get_stats tool', () => {
-  let server: any;
-  let mockServices: any;
+  let server: PromptSmithServer;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
-    // Create mock services
-    mockServices = createMockServices();
-    
-    // Mock the services module
-    jest.doMock('../../../src/services/index', () => ({
-      services: mockServices,
-    }));
-
-    const serverModule = await import('../../../src/server/index');
-    server = new serverModule.PromptSmithServer();
+    server = new PromptSmithServer();
   });
 
   describe('valid inputs', () => {
@@ -82,7 +78,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce(mockTelemetryStats);
       mockServices.healthCheck.mockResolvedValueOnce(mockHealthCheck);
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       expect(mockServices.store.getStats).toHaveBeenCalled();
       expect(mockServices.telemetry.getStats).toHaveBeenCalledWith(7); // Default 7 days
@@ -145,7 +141,7 @@ describe('get_stats tool', () => {
           uptime: 86400,
         });
 
-        const result = await server.handleGetStats({ days });
+        const result = await (server as any).handleGetStats({ days });
 
         expect(mockServices.telemetry.getStats).toHaveBeenCalledWith(days);
 
@@ -173,7 +169,7 @@ describe('get_stats tool', () => {
         arrayBuffers: 2 * 1024 * 1024,
       });
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       const systemInfo = responseData.data.system;
@@ -212,7 +208,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce({ events: 500 });
       mockServices.healthCheck.mockResolvedValueOnce({ status: 'healthy' });
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       expect(responseData.data.store.domainDistribution).toBeDefined();
@@ -257,7 +253,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce(mockTelemetryStats);
       mockServices.healthCheck.mockResolvedValueOnce({ status: 'healthy' });
 
-      const result = await server.handleGetStats({ days: 30 });
+      const result = await (server as any).handleGetStats({ days: 30 });
 
       const responseData = JSON.parse(result.content[0].text);
       const telemetry = responseData.data.telemetry;
@@ -286,7 +282,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce(mockTelemetryStats);
       mockServices.healthCheck.mockResolvedValueOnce({ status: 'healthy' });
 
-      const result = await server.handleGetStats({ days: 7 });
+      const result = await (server as any).handleGetStats({ days: 7 });
 
       const responseData = JSON.parse(result.content[0].text);
       const telemetry = responseData.data.telemetry;
@@ -329,7 +325,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce({ events: 500 });
       mockServices.healthCheck.mockResolvedValueOnce(mockHealthCheck);
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       const health = responseData.data.health;
@@ -363,7 +359,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce({ events: 500, errors: 50 });
       mockServices.healthCheck.mockResolvedValueOnce(mockHealthCheck);
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       const health = responseData.data.health;
@@ -398,7 +394,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce({ events: 100, errors: 25 });
       mockServices.healthCheck.mockResolvedValueOnce(mockHealthCheck);
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       const health = responseData.data.health;
@@ -418,11 +414,11 @@ describe('get_stats tool', () => {
       mockServices.healthCheck.mockResolvedValue({ status: 'healthy' });
 
       // Test without days parameter
-      await server.handleGetStats({});
+      await (server as any).handleGetStats({});
       expect(mockServices.telemetry.getStats).toHaveBeenCalledWith(7);
 
       // Test with days parameter
-      await server.handleGetStats({ days: 30 });
+      await (server as any).handleGetStats({ days: 30 });
       expect(mockServices.telemetry.getStats).toHaveBeenCalledWith(30);
     });
 
@@ -434,7 +430,7 @@ describe('get_stats tool', () => {
       const validValues = [1, 7, 30, 90, 365];
 
       for (const days of validValues) {
-        const result = await server.handleGetStats({ days });
+        const result = await (server as any).handleGetStats({ days });
         const responseData = JSON.parse(result.content[0].text);
         expect(responseData.success).toBe(true);
       }
@@ -449,7 +445,7 @@ describe('get_stats tool', () => {
       const testCases = [0, -1, 366, 1000];
 
       for (const days of testCases) {
-        const result = await server.handleGetStats({ days });
+        const result = await (server as any).handleGetStats({ days });
         // Should either succeed with adjusted value or return valid stats
         const responseData = JSON.parse(result.content[0].text);
         expect(responseData.success).toBe(true);
@@ -464,7 +460,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValueOnce({ events: 200 });
       mockServices.healthCheck.mockResolvedValueOnce({ status: 'degraded' });
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
       expect(responseData.success).toBe(true);
@@ -484,7 +480,7 @@ describe('get_stats tool', () => {
       mockServices.healthCheck.mockRejectedValueOnce(new Error('Health check failed'));
 
       // This should throw since all services failed
-      await expect(server.handleGetStats({})).rejects.toThrow();
+      await expect((server as any).handleGetStats({})).rejects.toThrow();
     });
 
     it('should handle timeout scenarios', async () => {
@@ -496,7 +492,7 @@ describe('get_stats tool', () => {
       mockServices.healthCheck.mockResolvedValueOnce({ status: 'healthy' });
 
       // Should either timeout or succeed depending on implementation
-      const promise = server.handleGetStats({});
+      const promise = (server as any).handleGetStats({});
 
       // Add reasonable timeout for test
       await expect(Promise.race([
@@ -513,7 +509,7 @@ describe('get_stats tool', () => {
       mockServices.healthCheck.mockResolvedValue({ status: 'healthy' });
 
       const { duration } = await measurePerformance(async () => {
-        return await server.handleGetStats({});
+        return await (server as any).handleGetStats({});
       });
 
       expectWithinPerformanceThreshold(
@@ -529,7 +525,7 @@ describe('get_stats tool', () => {
       mockServices.healthCheck.mockResolvedValue({ status: 'healthy' });
 
       const promises = Array.from({ length: 3 }, () =>
-        server.handleGetStats({})
+        (server as any).handleGetStats({})
       );
 
       const results = await Promise.all(promises);
@@ -548,7 +544,7 @@ describe('get_stats tool', () => {
       mockServices.telemetry.getStats.mockResolvedValue({ events: 300 });
       mockServices.healthCheck.mockResolvedValue({ status: 'healthy', uptime: 86400 });
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       // Validate MCP response structure
       expect(result).toHaveProperty('content');
@@ -593,7 +589,7 @@ describe('get_stats tool', () => {
         lastCheck: now,
       });
 
-      const result = await server.handleGetStats({});
+      const result = await (server as any).handleGetStats({});
 
       const responseData = JSON.parse(result.content[0].text);
 

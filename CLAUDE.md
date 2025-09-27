@@ -14,6 +14,7 @@ PromptSmith is an intelligent Model Context Protocol (MCP) server that transform
 - `npm run start` - Run production server from dist/
 - `npm run dev:http` - Development HTTP server mode
 - `npm run start:http` - Production HTTP server mode
+- `npm run mcp:stdio` - Run MCP server with STDIO-compatible patches
 
 ### Testing
 - `npm test` - Run all tests with Jest
@@ -25,6 +26,11 @@ PromptSmith is an intelligent Model Context Protocol (MCP) server that transform
   - `node scripts/test-process-prompt.cjs` - Test prompt processing
   - `node scripts/test-evaluate.cjs` - Test evaluation tool
   - `node scripts/test-full-workflow.cjs` - Full integration test
+
+### MCP & Build Verification
+- `npm run verify:mcp` - Verify MCP STDIO compatibility patches
+- `npm run post-build` - Apply STDIO patches after TypeScript compilation
+- `node scripts/verify-mcp-patch.cjs` - Comprehensive MCP readiness check
 
 ### Code Quality
 - `npm run lint` - Run ESLint on src/**/*.ts
@@ -138,20 +144,63 @@ The server runs as a stdio-based MCP server by default:
 - Compatible with Cursor IDE and other MCP clients
 - Can also run as HTTP server for REST API access
 
+### STDIO Compatibility & Offline Mode
+
+The project includes a sophisticated patching system for STDIO compatibility with MCP clients:
+
+**Built-in Smart Logger**: `src/utils/logger.ts`
+- Automatically detects STDIO mode via environment variables or TTY detection
+- Redirects all logs to `stderr` when in MCP mode to preserve JSON-RPC protocol
+- No manual configuration required - works automatically
+
+**Build Process**: `scripts/post-build.cjs`
+- Automatically applies STDIO patches during `npm run build`
+- Enables graceful offline mode when Supabase credentials are unavailable
+- Ensures MCP protocol compliance for Cursor/Claude integration
+
+**Legacy Script**: `scripts/patch-and-run-promptsmith.cjs`
+- Maintained for backward compatibility with older configurations
+- Use built-in system instead for new setups
+
+**Usage**:
+```bash
+# Direct execution
+npm run mcp:stdio
+
+# Via global command (uses patched version automatically)
+promptsmith-mcp
+```
+
 Configure in MCP client (e.g., `~/.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
     "promptsmith": {
-      "command": "promptsmith-mcp",
+      "command": "node",
+      "args": ["scripts/patch-and-run-promptsmith.cjs"],
+      "cwd": "/path/to/PromptSmith",
       "env": {
-        "SUPABASE_URL": "...",
-        "SUPABASE_KEY": "..."
+        "NODE_ENV": "production",
+        "TELEMETRY_ENABLED": "false"
+      }
+    },
+    "promptsmith-global": {
+      "command": "promptsmith-mcp",
+      "args": [],
+      "env": {
+        "NODE_ENV": "production"
       }
     }
   }
 }
 ```
+
+**Offline Mode Features**:
+- Automatically activates when SUPABASE_URL/SUPABASE_ANON_KEY are missing
+- Uses in-memory storage for prompts and cache
+- Provides mock responses for all MCP tools
+- Logs offline status to stderr without breaking STDIO
+- Graceful degradation of functionality
 
 ## Performance Considerations
 
@@ -163,22 +212,27 @@ Configure in MCP client (e.g., `~/.cursor/mcp.json`):
 
 ## Development Workflow
 
-1. Make changes to TypeScript source in `src/`
-2. Run `npm run dev` for hot reload development
-3. Write tests for new functionality
-4. Run `npm test` to ensure tests pass
-5. Run `npm run lint:fix` to fix style issues
-6. Build with `npm run build` before deployment
-7. Verify with `npm run verify` script
+1. **First Time Setup**: Check for and apply database fixes from `URGENT_DATABASE_FIX.md`
+2. Make changes to TypeScript source in `src/`
+3. Run `npm run dev` for hot reload development
+4. Write tests for new functionality
+5. Run `npm test` to ensure tests pass
+6. Run `npm run lint:fix` to fix style issues
+7. Build with `npm run build` (automatically applies MCP patches)
+8. Verify MCP compatibility with `npm run verify:mcp`
+9. Test integration with scripts in `scripts/test-*.cjs`
 
 ## Troubleshooting
 
 Common issues and solutions:
+- **Database schema errors**: Apply fixes from `URGENT_DATABASE_FIX.md` first
 - **Missing environment variables**: Check `.env` file exists with required vars
 - **Database connection**: Verify Supabase URL and key are correct
 - **Redis connection**: Ensure Redis is running if caching is enabled
 - **TypeScript errors**: Run `npm run build` to see compilation errors
 - **Test failures**: Check coverage reports in `coverage/` directory
+- **MCP integration issues**: Run `npm run verify:mcp` to check STDIO compatibility
+- **Cursor IDE not detecting tools**: Restart Cursor completely after MCP configuration changes
 
 ## Important Development Notes
 
@@ -187,6 +241,14 @@ Common issues and solutions:
 - **Hybrid Architecture**: Supports both CLI (`pimpprompt`) and MCP server (`promptsmith-mcp`) modes
 - **Global CLI Access**: Install with `npm link` to create global `pimpprompt` command
 - **Production Database**: Uses real Supabase backend at sujeto10.com with fallback system
+
+### Critical Database Issues & Fixes
+⚠️ **URGENT**: There is a known production database issue that requires manual intervention:
+- Missing `promptsmith_user_feedback` table
+- Missing 11 domain enum values (mobile, web, backend, frontend, ai, gaming, crypto, education, healthcare, finance, legal)
+- **Fix Required**: Execute SQL from `URGENT_DATABASE_FIX.md` in Supabase dashboard before development
+- **Verification**: Run `node scripts/verify-database-setup.js` after applying fixes
+- **Impact**: Database operations will fail without these fixes
 
 ### CLI vs MCP Modes
 The project uniquely supports dual operation modes:
@@ -219,10 +281,12 @@ Located in `src/scoring/scorer.ts`:
 - Scores influence cache TTL and recommendation priority
 
 ### Testing Infrastructure
-- Jest configuration supports ESM modules and TypeScript
+- Jest configuration supports ESM modules and TypeScript with complex module resolution
 - Separate test projects for unit, integration, and performance testing
 - Global setup/teardown scripts in `tests/` directory
 - Coverage thresholds: 85% general, 90% for critical server paths
+- **Test Command**: Must use `NODE_OPTIONS='--experimental-vm-modules' jest` for ESM support
+- **Module Mapping**: Complex path mappings required for proper ESM/TypeScript integration
 
 ### Environment Dependencies
 - **Required**: SUPABASE_URL, SUPABASE_ANON_KEY

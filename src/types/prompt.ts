@@ -72,6 +72,7 @@ export interface AnalysisResult {
   sentimentScore: number;
   readabilityScore: number;
   technicalTerms: string[];
+  estimatedTokens: number;
 }
 
 // Token

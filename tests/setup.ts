@@ -5,6 +5,9 @@
 
 import { jest, expect, beforeEach, afterEach } from '@jest/globals';
 
+// Fix SIGINT listener warning - increase max listeners for test environment
+process.setMaxListeners(20);
+
 // Increase timeout for all tests
 jest.setTimeout(30000);
 
@@ -73,4 +76,12 @@ afterEach(() => {
   // Restore console methods
   console.error = originalConsoleError;
   console.warn = originalConsoleWarn;
+  
+  // Clean up any remaining event listeners to prevent memory leaks
+  if (process.listenerCount('SIGINT') > 1) {
+    process.removeAllListeners('SIGINT');
+  }
+  if (process.listenerCount('SIGTERM') > 1) {
+    process.removeAllListeners('SIGTERM');
+  }
 });

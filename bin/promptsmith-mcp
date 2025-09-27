@@ -33,7 +33,7 @@ Object.keys(defaultEnv).forEach(key => {
 });
 
 // Find the patched MCP server entry point
-const patchedScriptPath = join(promptsmithRoot, 'scripts', 'patch-and-run-promptsmith.js');
+const patchedScriptPath = join(promptsmithRoot, 'scripts', 'patch-and-run-promptsmith.cjs');
 const mcpServerPath = join(promptsmithRoot, 'dist', 'mcp-server.js');
 
 // Check if patch script exists, otherwise fallback to original

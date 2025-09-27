@@ -62,8 +62,14 @@ function patchMcpServer(filePath) {
   }
 })();
 `;
-    // Inserta tras "use strict" o al inicio
-    if (/["']use strict["'];?/.test(src)) {
+    // Inserta tras shebang y "use strict" o al inicio
+    if (/^#!/.test(src)) {
+      // Hay shebang, insertar después
+      const lines = src.split('\n');
+      const shebang = lines[0];
+      const rest = lines.slice(1).join('\n');
+      src = `${shebang}\n${inject}\n${rest}`;
+    } else if (/["']use strict["'];?/.test(src)) {
       src = src.replace(/(["']use strict["'];?)/, `$1\n${inject}`);
     } else {
       src = `${inject}\n${src}`;

@@ -143,7 +143,8 @@ export class TemplateEngine {
         domainHints: [],
         sentimentScore: 0.5,
         readabilityScore: 0.5,
-        technicalTerms: []
+        technicalTerms: [],
+        estimatedTokens: prompt.split(' ').length
       },
     };
 

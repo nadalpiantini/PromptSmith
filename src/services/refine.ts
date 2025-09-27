@@ -1,6 +1,6 @@
 import { TemplateManager, templateManager } from '../templates/index.js';
 import { domainRegistry } from '../rules/index.js';
-import { AnalysisResult, PromptDomain, TemplateResult } from '../types/prompt.js';
+import { AnalysisResult, PromptDomain, TemplateResult, TemplateType } from '../types/prompt.js';
 
 export interface RefinementResult {
   refined: string;
@@ -135,7 +135,7 @@ export class RefineService {
     prompt: string,
     variables: Record<string, any>,
     domain: string
-  ): any {
+  ): TemplateType {
     // Simple heuristic for template type selection
     const promptLower = prompt.toLowerCase();
     const hasVariables = Object.keys(variables).length > 0;
@@ -145,7 +145,7 @@ export class RefineService {
         promptLower.includes('guide') ||
         promptLower.includes('how to') ||
         promptLower.includes('tutorial')) {
-      return 'step-by-step';
+      return TemplateType.STEP_BY_STEP;
     }
 
     // Check for role-based indicators
@@ -153,7 +153,7 @@ export class RefineService {
         promptLower.includes('you are') ||
         promptLower.includes('expert') ||
         promptLower.includes('professional')) {
-      return 'role-based';
+      return TemplateType.ROLE_BASED;
     }
 
     // Check for reasoning indicators
@@ -161,16 +161,16 @@ export class RefineService {
         promptLower.includes('explain') ||
         promptLower.includes('reasoning') ||
         promptLower.includes('think through')) {
-      return 'chain-of-thought';
+      return TemplateType.CHAIN_OF_THOUGHT;
     }
 
     // Few-shot if we have variables that could be examples
     if (hasVariables && (variables.examples || variables.samples)) {
-      return 'few-shot';
+      return TemplateType.FEW_SHOT;
     }
 
     // Default to basic
-    return 'basic';
+    return TemplateType.BASIC;
   }
 
   private generateGeneralSystemPrompt(

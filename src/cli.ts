@@ -6,6 +6,25 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Utility function to check if we're in STDIO mode (MCP protocol)
+function isSTDIOMode(): boolean {
+  return process.env.MCP_TRANSPORT === 'stdio' || !process.stdout.isTTY;
+}
+
+// Graceful exit helper that respects STDIO mode
+function gracefulExit(code: number, message?: string): void {
+  if (message) {
+    console.error(message);
+  }
+  
+  if (isSTDIOMode()) {
+    console.error('Running in STDIO mode - continuing with degraded functionality...');
+    return; // Don't exit in STDIO mode
+  }
+  
+  process.exit(code);
+}
+
 // Validate required environment variables
 const requiredEnvVars = [
   'SUPABASE_URL',
@@ -15,12 +34,8 @@ const requiredEnvVars = [
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missingEnvVars.forEach(varName => {
-    console.error(`   - ${varName}`);
-  });
-  console.error('\n💡 Please check your .env file or environment configuration');
-  process.exit(1);
+  const errorMessage = `❌ Missing required environment variables:\n${missingEnvVars.map(v => `   - ${v}`).join('\n')}\n\n💡 Please check your .env file or environment configuration`;
+  gracefulExit(1, errorMessage);
 }
 
 // Optional environment variables with defaults
@@ -65,24 +80,18 @@ async function main() {
   } catch (error) {
     console.error('❌ Failed to start PromptSmith MCP Server:');
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('\n🔧 Troubleshooting:');
-    console.error('   1. Check your environment variables');
-    console.error('   2. Ensure database is accessible');
-    console.error('   3. Verify Redis connection (if using cache)');
-    console.error('   4. Check network connectivity');
-    process.exit(1);
+    const troubleshootingMessage = `\n🔧 Troubleshooting:\n   1. Check your environment variables\n   2. Ensure database is accessible\n   3. Verify Redis connection (if using cache)\n   4. Check network connectivity`;
+    gracefulExit(1, troubleshootingMessage);
   }
 }
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
+  gracefulExit(1, `❌ Uncaught Exception: ${error.message}`);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  gracefulExit(1, `❌ Unhandled Rejection: ${reason}`);
 });
 
 // Start the application

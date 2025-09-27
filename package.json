@@ -9,11 +9,15 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js && chmod +x bin/promptsmith-mcp",
+    "build": "tsc && node scripts/post-build.cjs",
+    "build:old": "tsc && chmod +x dist/cli.js && chmod +x bin/promptsmith-mcp",
+    "post-build": "node scripts/post-build.cjs",
     "dev": "tsx watch src/cli.ts",
     "start": "node dist/cli.js",
     "start:http": "node dist/server/http-server.js",
     "dev:http": "tsx watch src/server/http-server.ts",
+    "web": "npm run build && npm run start:http",
+    "dev:web": "npm run dev:http",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
@@ -26,6 +30,7 @@
     "setup": "./scripts/setup.sh",
     "test:server": "node scripts/test-server.js",
     "verify": "./scripts/verify-installation.sh",
+    "verify:mcp": "node scripts/verify-mcp-patch.cjs",
     "docs": "typedoc src/",
     "clean": "rm -rf dist",
     "prepare": "npm run build",
@@ -34,7 +39,7 @@
     "production:check": "node scripts/production-readiness-check.js",
     "auto-fix": "tsx tools/auto-fix-mcp.ts",
     "auto-fix:docker": "docker-compose --profile auto-fix up --build",
-    "mcp:stdio": "node scripts/patch-and-run-promptsmith.js"
+    "mcp:stdio": "node scripts/patch-and-run-promptsmith.cjs"
   },
   "keywords": [
     "mcp",

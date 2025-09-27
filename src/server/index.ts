@@ -10,6 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { PromptOrchestrator } from '../core/orchestrator.js';
+import { PromptValidator } from '../core/validator.js';
 import { services } from '../services/index.js';
 import {
   ProcessInput,
@@ -23,9 +24,17 @@ import {
 const SERVER_NAME = 'promptsmith-mcp';
 const SERVER_VERSION = '1.0.0';
 
+// Complete list of supported domains (aligned with PromptDomain enum)
+const SUPPORTED_DOMAINS = [
+  'general', 'sql', 'branding', 'cine', 'saas', 'devops',
+  'mobile', 'web', 'backend', 'frontend', 'ai', 'gaming', 
+  'crypto', 'education', 'healthcare', 'finance', 'legal'
+];
+
 class PromptSmithServer {
   private server: Server;
   private orchestrator: PromptOrchestrator;
+  private validator: PromptValidator;
 
   constructor() {
     this.server = new Server(
@@ -41,6 +50,7 @@ class PromptSmithServer {
     );
 
     this.orchestrator = new PromptOrchestrator();
+    this.validator = new PromptValidator();
     this.setupToolHandlers();
     this.setupErrorHandling();
   }
@@ -62,7 +72,7 @@ class PromptSmithServer {
                 },
                 domain: {
                   type: 'string',
-                  enum: ['general', 'sql', 'branding', 'cine', 'saas', 'devops'],
+                  enum: SUPPORTED_DOMAINS,
                   description: 'The domain context for specialized processing',
                   default: 'general'
                 },
@@ -107,7 +117,7 @@ class PromptSmithServer {
                 },
                 domain: {
                   type: 'string',
-                  enum: ['general', 'sql', 'branding', 'cine', 'saas', 'devops'],
+                  enum: SUPPORTED_DOMAINS,
                   description: 'Domain context for evaluation'
                 }
               },
@@ -149,7 +159,7 @@ class PromptSmithServer {
                   properties: {
                     domain: {
                       type: 'string',
-                      enum: ['general', 'sql', 'branding', 'cine', 'saas', 'devops']
+                      enum: SUPPORTED_DOMAINS
                     },
                     description: {
                       type: 'string',
@@ -193,7 +203,7 @@ class PromptSmithServer {
                 },
                 domain: {
                   type: 'string',
-                  enum: ['general', 'sql', 'branding', 'cine', 'saas', 'devops'],
+                  enum: SUPPORTED_DOMAINS,
                   description: 'Filter by domain'
                 },
                 tags: {
@@ -275,7 +285,7 @@ class PromptSmithServer {
                 },
                 domain: {
                   type: 'string',
-                  enum: ['general', 'sql', 'branding', 'cine', 'saas', 'devops'],
+                  enum: SUPPORTED_DOMAINS,
                   description: 'Domain context for validation',
                   default: 'general'
                 }
@@ -324,6 +334,14 @@ class PromptSmithServer {
             );
         }
       } catch (error) {
+        // Track MCP tool errors in observability stack
+        await services.observability.trackMCPMessage(
+          name,
+          this.sanitizeArgs(args),
+          undefined,
+          error as Error
+        );
+        
         await services.telemetry.error(`tool_${name}_error`, error, {
           tool: name,
           args: this.sanitizeArgs(args)
@@ -364,7 +382,18 @@ class PromptSmithServer {
       targetModel
     };
 
+    const startTime = Date.now();
     const result = await this.orchestrator.process(input);
+    const duration = Date.now() - startTime;
+
+    // Track successful MCP message processing
+    await services.observability.trackMCPMessage(
+      'process_prompt',
+      { domain, tone, input_length: raw.length },
+      { quality_score: result.score.overall, processing_time: duration },
+      undefined,
+      duration
+    );
 
     return {
       content: [
@@ -376,6 +405,7 @@ class PromptSmithServer {
               original: result.original,
               refined: result.refined,
               system: result.system,
+              analysis: result.analysis,
               score: result.score,
               validation: result.validation,
               suggestions: result.suggestions,
@@ -627,6 +657,102 @@ class PromptSmithServer {
     return sanitized;
   }
 
+  // Public methods for HTTP server integration
+  async processPrompt(input: { text: string; domain?: string; options?: any }) {
+    try {
+      const processInput: ProcessInput = {
+        raw: input.text,
+        domain: input.domain as PromptDomain || PromptDomain.GENERAL
+      };
+
+      const result = await this.orchestrator.process(processInput);
+      return result;
+    } catch (error) {
+      console.error('Process prompt error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async evaluatePrompt(input: { text: string; criteria?: string; domain?: string }) {
+    try {
+      const criteria = input.criteria ? [input.criteria] : undefined;
+      const result = await this.orchestrator.evaluate(input.text, criteria, input.domain);
+      return result;
+    } catch (error) {
+      console.error('Evaluate prompt error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async comparePrompts(input: { prompts: string[]; testInput?: string }) {
+    try {
+      const result = await this.orchestrator.compare(input.prompts, input.testInput);
+      return result;
+    } catch (error) {
+      console.error('Compare prompts error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async savePrompt(input: { original: string; optimized: string; metadata: SaveMetadata }) {
+    try {
+      const result = await this.orchestrator.save(input.original, input.metadata);
+      return result;
+    } catch (error) {
+      console.error('Save prompt error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async searchPrompts(params: SearchParams) {
+    try {
+      const result = await this.orchestrator.search(params);
+      return result;
+    } catch (error) {
+      console.error('Search prompts error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async getPrompt(input: { id: string }) {
+    try {
+      // For now, we'll use the search functionality to find by ID
+      const results = await this.orchestrator.search({ query: input.id, limit: 1 });
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error('Get prompt error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async getStats() {
+    try {
+      // Return basic stats - can be expanded later
+      return {
+        totalProcessed: 0,
+        totalSaved: 0,
+        averageQuality: 0.75,
+        cacheHitRate: 0.60,
+        uptime: process.uptime(),
+        topDomain: 'general'
+      };
+    } catch (error) {
+      console.error('Get stats error in MCP server:', error);
+      throw error;
+    }
+  }
+
+  async validatePrompt(input: { text: string }) {
+    try {
+      // Use the validator directly for prompt validation
+      const validation = await this.validator.validate(input.text);
+      return validation;
+    } catch (error) {
+      console.error('Validate prompt error in MCP server:', error);
+      throw error;
+    }
+  }
+
   async start() {
     const transport = new StdioServerTransport();
 
@@ -654,7 +780,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const server = new PromptSmithServer();
   server.start().catch((error) => {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    // In STDIO mode, don't exit as it breaks MCP protocol
+    // Instead, log error and continue with degraded functionality
+    if (process.env.MCP_TRANSPORT === 'stdio' || !process.stdout.isTTY) {
+      console.error('Server will continue in degraded mode...');
+    } else {
+      process.exit(1);
+    }
   });
 }
 

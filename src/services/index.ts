@@ -10,6 +10,12 @@ export {
   type MetricEvent,
   type TelemetryStats
 } from './telemetry.js';
+export {
+  ObservabilityService,
+  type ObservabilityConfig,
+  type TraceSpan,
+  type MetricPoint
+} from './observability.js';
 
 // Import classes for internal use
 import { RefineService } from './refine.js';
@@ -17,6 +23,7 @@ import { ScoreService } from './score.js';
 import { StoreService } from './store.js';
 import { CacheService } from './cache.js';
 import { TelemetryService } from './telemetry.js';
+import { ObservabilityService } from './observability.js';
 
 // Service layer convenience factory
 export class ServiceContainer {
@@ -27,6 +34,7 @@ export class ServiceContainer {
   public readonly store: StoreService;
   public readonly cache: CacheService;
   public readonly telemetry: TelemetryService;
+  public readonly observability: ObservabilityService;
 
   private constructor() {
     this.refine = new RefineService();
@@ -34,6 +42,7 @@ export class ServiceContainer {
     this.store = new StoreService();
     this.cache = new CacheService();
     this.telemetry = new TelemetryService();
+    this.observability = new ObservabilityService();
   }
 
   public static getInstance(): ServiceContainer {
@@ -49,13 +58,15 @@ export class ServiceContainer {
     store: boolean;
     cache: boolean;
     telemetry: boolean;
+    observability: boolean;
   }> {
     const results = {
       refine: true, // RefineService is always healthy if constructed
       score: true,  // ScoreService is always healthy if constructed
       store: false,
       cache: false,
-      telemetry: false
+      telemetry: false,
+      observability: false
     };
 
     try {
@@ -79,6 +90,15 @@ export class ServiceContainer {
       results.telemetry = true;
     } catch (error) {
       console.error('Telemetry health check failed:', error);
+    }
+
+    try {
+      // Test observability stack integration
+      const spanId = await this.observability.startSpan('health_check');
+      await this.observability.finishSpan(spanId);
+      results.observability = true;
+    } catch (error) {
+      console.error('Observability health check failed:', error);
     }
 
     return results;
