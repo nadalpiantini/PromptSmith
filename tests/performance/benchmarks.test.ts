@@ -8,12 +8,12 @@ import {
   MCPTestClient,
   withMCPClient,
   parseToolResponseData,
-} from '../utils/mcp-test-client.js';
+} from '../utils/mcp-test-client';
 import {
   measurePerformance,
   TEST_CONSTANTS,
-} from '../utils/test-helpers.js';
-import { setupMockEnvironment } from '../utils/mock-services.js';
+} from '../utils/test-helpers';
+import { setupMockEnvironment } from '../utils/mock-services';
 
 // Mock external services for performance tests
 setupMockEnvironment();

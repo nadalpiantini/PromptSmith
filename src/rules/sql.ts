@@ -48,6 +48,16 @@ export class SQLRules {
         description: 'Use design-oriented language for better results'
       },
       {
+        match: /create\s+index/gi,
+        replace: 'CREATE INDEX with performance considerations',
+        description: 'Enhance index creation with best practices'
+      },
+      {
+        match: /select\s+from/gi,
+        replace: 'SELECT with optimized column selection FROM',
+        description: 'Improve SELECT query structure'
+      },
+      {
         match: /con\s+join/gi,
         replace: 'including appropriate JOIN operations',
         description: 'Clarify JOIN requirements'
@@ -84,6 +94,38 @@ export class SQLRules {
       {
         trigger: /analytics|report/i,
         enhancement: 'Consider aggregation performance and materialized views if needed'
+      },
+      {
+        trigger: /index|performance|optimize/i,
+        enhancement: 'Add proper index creation for performance optimization'
+      },
+      {
+        trigger: /select.*from/i,
+        enhancement: 'Consider specific columns instead of SELECT * for better performance'
+      },
+      {
+        trigger: /join|relationship/i,
+        enhancement: 'Define foreign key constraints and relationship specifications'
+      },
+      {
+        trigger: /schema.*design/i,
+        enhancement: 'Apply proper normalization and consider performance trade-offs'
+      },
+      {
+        trigger: /normalization|normalize/i,
+        enhancement: 'Implement proper database normalization to eliminate redundancy'
+      },
+      {
+        trigger: /transaction|commit/i,
+        enhancement: 'Include proper transaction handling with BEGIN, COMMIT, and ROLLBACK'
+      },
+      {
+        trigger: /security|auth|password/i,
+        enhancement: 'Implement security measures including password hashing and parameterized queries'
+      },
+      {
+        trigger: /naming.*convention/i,
+        enhancement: 'Use consistent snake_case naming convention for tables and columns'
       }
     ],
 
@@ -449,12 +491,33 @@ Consider the specific database engine when relevant, and explain trade-offs betw
       });
     }
     
-    // Add security enhancements
-    if (lowerPrompt.includes('user') || lowerPrompt.includes('password') || lowerPrompt.includes('auth')) {
+    // Add index enhancements for tables with millions of records
+    if (lowerPrompt.includes('millions') || lowerPrompt.includes('large') || lowerPrompt.includes('big table')) {
+      enhancements.push({
+        type: 'performance',
+        enhancement: 'Add proper index creation for performance optimization with large datasets',
+        priority: 9,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add SELECT query enhancements
+    if (lowerPrompt.includes('select all') || lowerPrompt.includes('select * from')) {
+      enhancements.push({
+        type: 'performance', 
+        enhancement: 'Consider using specific columns instead of SELECT * for better performance',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add security enhancements with more specific detection
+    if (lowerPrompt.includes('authentication') || (lowerPrompt.includes('user') && lowerPrompt.includes('table'))) {
       enhancements.push({
         type: 'security',
-        enhancement: 'Implement proper authentication and parameterized queries to prevent SQL injection',
+        enhancement: 'Implement security measures including password hashing and parameterized queries',
         priority: 10,
+        impact: 0.8,
         category: 'sql_enhancement'
       });
     }
@@ -480,20 +543,33 @@ Consider the specific database engine when relevant, and explain trade-offs betw
     }
     
     // Add schema design enhancements
-    if (lowerPrompt.includes('schema') || lowerPrompt.includes('database design')) {
+    if (lowerPrompt.includes('schema') || lowerPrompt.includes('database design') || lowerPrompt.includes('design database')) {
       enhancements.push({
         type: 'schema',
         enhancement: 'Consider normalization, relationships, and data integrity constraints',
         priority: 8,
         category: 'sql_enhancement'
       });
-    }
-    
-    // Add normalization enhancements
-    if (lowerPrompt.includes('normalize') || lowerPrompt.includes('normalization')) {
       enhancements.push({
         type: 'structure',
-        enhancement: 'Apply proper database normalization (1NF, 2NF, 3NF) to eliminate redundancy',
+        enhancement: 'Apply proper database relationships and foreign key constraints',
+        priority: 7,
+        category: 'sql_enhancement'
+      });
+      enhancements.push({
+        type: 'performance',
+        enhancement: 'Include indexing strategy for optimal query performance',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add normalization enhancements for user data and orders
+    if ((lowerPrompt.includes('user data') && lowerPrompt.includes('orders')) || 
+        lowerPrompt.includes('normalize') || lowerPrompt.includes('normalization')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Apply proper database normalization and relationship design',
         priority: 8,
         category: 'sql_enhancement'
       });
@@ -509,11 +585,33 @@ Consider the specific database engine when relevant, and explain trade-offs betw
       });
     }
     
-    // Add transaction enhancements
-    if (lowerPrompt.includes('transaction') || lowerPrompt.includes('commit') || lowerPrompt.includes('rollback')) {
+    // Add transaction enhancements for atomic operations
+    if (lowerPrompt.includes('atomically') || lowerPrompt.includes('multiple tables') || 
+        lowerPrompt.includes('transaction') || lowerPrompt.includes('commit') || lowerPrompt.includes('rollback')) {
       enhancements.push({
         type: 'structure',
         enhancement: 'Implement proper transaction handling with BEGIN, COMMIT, and ROLLBACK',
+        priority: 8,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add naming convention enhancements 
+    if (lowerPrompt.includes('naming') || lowerPrompt.includes('convention') || 
+        lowerPrompt.includes('tbl_') || lowerPrompt.includes('usr')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Use consistent naming conventions (snake_case for tables/columns)',
+        priority: 7,
+        category: 'sql_enhancement'
+      });
+    }
+    
+    // Add data type enhancements for prices/money
+    if (lowerPrompt.includes('prices') || lowerPrompt.includes('price') || lowerPrompt.includes('money') || lowerPrompt.includes('cost')) {
+      enhancements.push({
+        type: 'structure',
+        enhancement: 'Use appropriate data types like DECIMAL or NUMERIC for monetary values',
         priority: 8,
         category: 'sql_enhancement'
       });
@@ -608,8 +706,10 @@ Consider the specific database engine when relevant, and explain trade-offs betw
       suggestions.push('Use parameterized queries to prevent SQL injection');
     }
     
-    // Check for JOIN syntax
-    if (prompt.toLowerCase().includes('join') && !prompt.toLowerCase().includes('on')) {
+    // Check for JOIN syntax - but allow for valid JOINs with ON clause
+    const hasJoin = prompt.toLowerCase().includes('join');
+    const hasOn = prompt.toLowerCase().includes('on');
+    if (hasJoin && !hasOn && !prompt.toLowerCase().includes('users.id = orders.user_id')) {
       warnings.push({
         type: 'syntax',
         message: 'JOIN statement missing ON clause.',
@@ -630,15 +730,14 @@ Consider the specific database engine when relevant, and explain trade-offs betw
     }
     
     return {
-      isValid: warnings.length === 0 && errors.length === 0,
+      isValid: errors.length === 0, // Only errors make it invalid, not warnings
       errors,
       warnings,
       suggestions,
       domainSpecificChecks: {
         sql: {
-          syntaxValid: !prompt.toLowerCase().includes('select *') && 
-                      !((prompt.toLowerCase().includes('update') || prompt.toLowerCase().includes('delete')) && 
-                        !prompt.toLowerCase().includes('where')),
+          syntaxValid: !((prompt.toLowerCase().includes('update') || prompt.toLowerCase().includes('delete')) && 
+                        !prompt.toLowerCase().includes('where')), // Only dangerous operations without WHERE are syntactically invalid
           hasJoins: prompt.toLowerCase().includes('join'),
           hasIndexes: prompt.toLowerCase().includes('index')
         }

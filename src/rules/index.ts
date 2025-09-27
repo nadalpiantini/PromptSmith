@@ -269,7 +269,7 @@ export class PromptDomainRegistry implements DomainRegistry {
 
     // Ensure proper ending
     if (!refined.match(/[.!?]$/)) {
-      refined = refined.trim() + '.';
+      refined = `${refined.trim()  }.`;
       rulesApplied.push('general_punctuation');
       improvements.push('Added proper ending punctuation');
     }

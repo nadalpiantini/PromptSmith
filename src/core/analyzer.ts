@@ -24,40 +24,42 @@ export class PromptAnalyzer {
 
   async analyze(rawPrompt: string): Promise<AnalysisResult> {
     try {
+      // Clean and validate input
+      const cleanedPrompt = this.cleanInput(rawPrompt);
       const startTime = Date.now();
 
       // Tokenization and basic processing
-      const tokens = this.tokenizeText(rawPrompt);
+      const tokens = this.tokenizeText(cleanedPrompt);
 
       // Entity extraction
-      const entities = this.extractEntities(rawPrompt);
+      const entities = this.extractEntities(cleanedPrompt);
 
       // Intent classification
-      const intent = this.detectIntent(rawPrompt, tokens);
+      const intent = this.detectIntent(cleanedPrompt, tokens);
 
       // Complexity calculation
-      const complexity = this.calculateComplexity(rawPrompt, tokens);
+      const complexity = this.calculateComplexity(cleanedPrompt, tokens);
 
       // Ambiguity scoring
-      const ambiguityScore = this.calculateAmbiguity(rawPrompt, tokens);
+      const ambiguityScore = this.calculateAmbiguity(cleanedPrompt, tokens);
 
       // Variable detection
-      const hasVariables = this.detectVariables(rawPrompt);
+      const hasVariables = this.detectVariables(cleanedPrompt);
 
       // Language detection
-      const language = this.detectLanguage(rawPrompt);
+      const language = this.detectLanguage(cleanedPrompt);
 
       // Domain hints extraction
-      const domainHints = this.extractDomainHints(rawPrompt, tokens);
+      const domainHints = this.extractDomainHints(cleanedPrompt, tokens);
 
       // Sentiment analysis
-      const sentimentScore = this.analyzeSentiment(rawPrompt);
+      const sentimentScore = this.analyzeSentiment(cleanedPrompt);
 
       // Readability scoring
-      const readabilityScore = this.calculateReadability(rawPrompt);
+      const readabilityScore = this.calculateReadability(cleanedPrompt);
 
       // Technical terms extraction
-      const technicalTerms = this.extractTechnicalTerms(rawPrompt, tokens);
+      const technicalTerms = this.extractTechnicalTerms(cleanedPrompt, tokens);
 
       const _processingTime = Date.now() - startTime;
 
@@ -104,11 +106,11 @@ export class PromptAnalyzer {
   }
 
   private basicTokenize(text: string): Token[] {
-    const words = this.tokenizer.tokenize(text.toLowerCase()) || [];
+    const words = this.tokenizer.tokenize(text) || []; // Preserve original case
     return words.map((word: string) => ({
       text: word,
       pos: 'unknown',
-      lemma: this.stemmer.stem(word),
+      lemma: this.stemmer.stem(word.toLowerCase()), // Stem on lowercase version
       isStopWord: this.isStopWord(word),
       sentiment: this.getTokenSentiment(word),
     }));
@@ -160,6 +162,12 @@ export class PromptAnalyzer {
         { pattern: /\b\d+(\.\d+)*\b/g, label: 'VERSION' },
         { pattern: /\$\w+/g, label: 'VARIABLE' },
         { pattern: /\{\{\s*\w+\s*\}\}/g, label: 'TEMPLATE_VARIABLE' },
+        // Database technologies
+        { pattern: /\b(PostgreSQL|MySQL|MongoDB|Redis|SQLite|MariaDB|Oracle|SQL\s*Server)\b/gi, label: 'DATABASE' },
+        // Programming languages and frameworks
+        { pattern: /\b(React|Vue|Angular|Node\.?js|Python|JavaScript|TypeScript|Java|C\+\+|PHP|Ruby|Go|Rust)\b/gi, label: 'TECHNOLOGY' },
+        // Authentication systems
+        { pattern: /\b(OAuth2?|JWT|SAML|OpenID|SSO|2FA|MFA)\b/gi, label: 'AUTH_TECH' },
       ];
 
       techPatterns.forEach(({ pattern, label }) => {
@@ -263,39 +271,51 @@ export class PromptAnalyzer {
   }
 
   private calculateComplexity(text: string, tokens: Token[]): number {
+    // Handle empty text case
+    if (text.length === 0 || tokens.length === 0) {
+      return 0; // Zero complexity for empty text
+    }
+
     let complexity = 0;
 
-    // Length complexity
-    const lengthFactor = Math.min(text.length / 200, 1.0) * 0.2;
+    // Length complexity - much higher weight for long texts
+    const lengthFactor = Math.min(text.length / 100, 2.0) * 0.35; // Much higher weight
     complexity += lengthFactor;
 
     // Sentence complexity
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const avgSentenceLength = text.length / sentences.length;
-    const sentenceFactor = Math.min(avgSentenceLength / 50, 1.0) * 0.2;
-    complexity += sentenceFactor;
+    if (sentences.length > 0) {
+      const avgSentenceLength = text.length / sentences.length;
+      const sentenceFactor = Math.min(avgSentenceLength / 30, 1.5) * 0.25; // Higher weight
+      complexity += sentenceFactor;
+    }
 
     // Vocabulary complexity
     const uniqueWords = new Set(tokens.map(t => t.lemma));
     const vocabularyRichness = uniqueWords.size / tokens.length;
-    complexity += vocabularyRichness * 0.2;
+    complexity += vocabularyRichness * 0.15;
 
     // Technical term complexity
     const techTermCount = tokens.filter(t =>
       this.isTechnicalTerm(t.text) || t.pos === 'Acronym'
     ).length;
-    const techFactor = Math.min(techTermCount / tokens.length, 1.0) * 0.2;
+    const techFactor = Math.min(techTermCount / tokens.length * 5, 1.0) * 0.15;
     complexity += techFactor;
 
     // Syntactic complexity
     const conjunctions = tokens.filter(t => ['CC', 'IN'].includes(t.pos)).length;
-    const syntacticFactor = Math.min(conjunctions / tokens.length, 1.0) * 0.2;
+    const syntacticFactor = Math.min(conjunctions / tokens.length * 2, 1.0) * 0.1;
     complexity += syntacticFactor;
 
     return Math.min(complexity, 1.0);
   }
 
   private calculateAmbiguity(text: string, tokens: Token[]): number {
+    // Handle empty text case
+    if (tokens.length === 0) {
+      return 1.0; // Maximum ambiguity for empty text
+    }
+
     let ambiguityScore = 0;
 
     // Vague terms
@@ -442,12 +462,31 @@ export class PromptAnalyzer {
 
     tokens.forEach(token => {
       if (this.isTechnicalTerm(token.text)) {
+        // Preserve case for technical terms
         technicalTerms.push(token.text);
       }
     });
 
-    // Remove duplicates
-    return [...new Set(technicalTerms)];
+    // Also check for case-insensitive matches to preserve original casing
+    const originalWords = text.match(/\b\w+\b/g) || [];
+    originalWords.forEach(word => {
+      if (this.isTechnicalTerm(word) && !technicalTerms.some(term => 
+        term.toLowerCase() === word.toLowerCase())) {
+        technicalTerms.push(word);
+      }
+    });
+
+    // Remove duplicates (case-insensitive)
+    const uniqueTerms: string[] = [];
+    const seen = new Set<string>();
+    technicalTerms.forEach(term => {
+      if (!seen.has(term.toLowerCase())) {
+        seen.add(term.toLowerCase());
+        uniqueTerms.push(term);
+      }
+    });
+
+    return uniqueTerms;
   }
 
   private isTechnicalTerm(word: string): boolean {
@@ -457,6 +496,10 @@ export class PromptAnalyzer {
       /^(API|HTTP|JSON|XML|CSS|HTML|SQL|NoSQL|REST|GraphQL)$/i, // Common tech terms
       /^(React|Vue|Angular|Node|Express|Django|Flask)$/i, // Frameworks
       /^(Docker|Kubernetes|AWS|GCP|Azure)$/i, // DevOps tools
+      /^(OAuth2?|JWT|SAML|SSO|2FA|MFA)$/i, // Authentication
+      /^(PostgreSQL|MySQL|MongoDB|Redis|SQLite)$/i, // Databases
+      /^(JavaScript|TypeScript|Python|Java|PHP|Ruby|Go|Rust)$/i, // Languages
+      /^(function|class|interface|component|method|endpoint|database|schema|table)$/i, // Programming concepts
     ];
 
     return techPatterns.some(pattern => pattern.test(word));
@@ -470,6 +513,22 @@ export class PromptAnalyzer {
     ]);
 
     return stopWords.has(word.toLowerCase());
+  }
+
+  private cleanInput(input: string): string {
+    if (typeof input !== 'string') {
+      return '';
+    }
+
+    // Remove null characters and control characters except newlines and tabs
+    const cleaned = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    
+    // Trim excessive whitespace
+    const trimmed = cleaned.replace(/\s+/g, ' ').trim();
+    
+    // Limit length to prevent performance issues
+    const maxLength = 10000;
+    return trimmed.length > maxLength ? trimmed.substring(0, maxLength) : trimmed;
   }
 
   private getTokenSentiment(word: string): number {

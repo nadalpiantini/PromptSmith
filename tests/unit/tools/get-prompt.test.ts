@@ -3,22 +3,22 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PromptSmithServer } from '../../../src/server/index.js';
-import { services } from '../../../src/services/index.js';
+import { PromptSmithServer } from '../../../src/server/index';
+import { services } from '../../../src/services/index';
 import {
   createMockSavedPrompt,
   measurePerformance,
   expectWithinPerformanceThreshold,
   TEST_CONSTANTS,
-} from '../../utils/test-helpers.js';
-import { setupMockEnvironment, createMockServices } from '../../utils/mock-services.js';
+} from '../../utils/test-helpers';
+import { setupMockEnvironment, createMockServices } from '../../utils/mock-services';
 
 // Mock external services
 setupMockEnvironment();
 
 // Mock services
 const mockServices = createMockServices();
-jest.mock('../../../src/services/index.js', () => ({
+jest.mock('../../../src/services/index', () => ({
   services: mockServices,
 }));
 
@@ -28,7 +28,7 @@ describe('get_prompt tool', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const serverModule = await import('../../../src/server/index.js');
+    const serverModule = await import('../../../src/server/index');
     server = new serverModule.PromptSmithServer();
   });
 

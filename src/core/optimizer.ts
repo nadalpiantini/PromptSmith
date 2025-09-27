@@ -122,8 +122,8 @@ export class PromptOptimizer {
       improvements.push({
         type: 'structure',
         description: 'Capitalized the first letter',
-        before: before.substring(0, 20) + '...',
-        after: improved.substring(0, 20) + '...',
+        before: `${before.substring(0, 20)  }...`,
+        after: `${improved.substring(0, 20)  }...`,
         impact: 'low',
       });
       rulesApplied.push('capitalize_first_letter');
@@ -132,7 +132,7 @@ export class PromptOptimizer {
     // Ensure proper ending punctuation
     if (!improved.match(/[.!?]$/)) {
       const before = improved;
-      improved = improved.trim() + '.';
+      improved = `${improved.trim()  }.`;
       improvements.push({
         type: 'structure',
         description: 'Added proper ending punctuation',
@@ -159,8 +159,8 @@ export class PromptOptimizer {
         improvements.push({
           type: 'structure',
           description: 'Converted command to polite request',
-          before: before.substring(0, 30) + '...',
-          after: improved.substring(0, 30) + '...',
+          before: `${before.substring(0, 30)  }...`,
+          after: `${improved.substring(0, 30)  }...`,
           impact: 'medium',
         });
         rulesApplied.push('command_to_request');

@@ -8,12 +8,12 @@ import {
   MCPTestClient,
   withMCPClient,
   parseToolResponseData,
-} from '../utils/mcp-test-client.js';
+} from '../utils/mcp-test-client';
 import {
   TEST_CONSTANTS,
   measurePerformance,
-} from '../utils/test-helpers.js';
-import { setupMockEnvironment } from '../utils/mock-services.js';
+} from '../utils/test-helpers';
+import { setupMockEnvironment } from '../utils/mock-services';
 
 // Mock external services for error testing
 setupMockEnvironment();
@@ -77,7 +77,7 @@ describe('Error Handling and Edge Cases', () => {
         } catch (error) {
           // If it fails, should be a graceful failure with meaningful message
           expect(error).toBeInstanceOf(Error);
-          expect(error.message).toMatch(/too long|length|size|limit/i);
+          expect((error as Error).message).toMatch(/too long|length|size|limit/i);
         }
       });
     });
@@ -103,7 +103,7 @@ describe('Error Handling and Edge Cases', () => {
             expect(data.data.isValid).toBeDefined();
           } catch (error) {
             // Should not throw for special characters
-            throw new Error(`Failed to handle special characters in: "${prompt}". Error: ${error}`);
+            throw new Error(`Failed to handle special characters in: "${prompt}". Error: ${(error as Error).message}`);
           }
         }
       });
@@ -135,7 +135,7 @@ describe('Error Handling and Edge Cases', () => {
             expect(['general', 'sql', 'branding', 'cine', 'saas', 'devops']).toContain(data.data.metadata.domain);
           } catch (error) {
             // If it throws, should be a validation error
-            expect(error.message).toMatch(/invalid|domain|enum/i);
+            expect((error as Error).message).toMatch(/invalid|domain|enum/i);
           }
         }
       });
@@ -273,7 +273,7 @@ describe('Error Handling and Edge Cases', () => {
             } catch (error) {
               // Should fail gracefully with validation errors for invalid values
               if (value < 0 || value > 1000 || !Number.isFinite(value)) {
-                expect(error.message).toMatch(/invalid|range|limit/i);
+                expect((error as Error).message).toMatch(/invalid|range|limit/i);
               } else {
                 throw error; // Unexpected error
               }
@@ -307,7 +307,7 @@ describe('Error Handling and Edge Cases', () => {
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
             expect(result.reason).toBeInstanceOf(Error);
-            console.warn(`Request ${index} failed: ${result.reason.message}`);
+            console.warn(`Request ${index} failed: ${(result.reason as Error).message}`);
           }
         });
       });
@@ -385,7 +385,7 @@ describe('Error Handling and Edge Cases', () => {
             expect(data.success).toBe(true);
           } catch (error) {
             // If it fails, should be a validation error
-            expect(error.message).toMatch(/invalid|type|validation/i);
+            expect((error as Error).message).toMatch(/invalid|type|validation/i);
           }
         }
       });
@@ -412,8 +412,8 @@ describe('Error Handling and Edge Cases', () => {
           console.log(`Complex operation completed in ${duration}ms`);
         } catch (error) {
           // Should timeout gracefully
-          expect(error.message).toMatch(/timeout|time.*out/i);
-          console.log(`Operation timed out as expected: ${error.message}`);
+          expect((error as Error).message).toMatch(/timeout|time.*out/i);
+          console.log(`Operation timed out as expected: ${(error as Error).message}`);
         }
       });
     });
@@ -436,7 +436,7 @@ describe('Error Handling and Edge Cases', () => {
         await expect(requestPromise).rejects.toThrow(/stopped|connection|error/i);
 
       } catch (error) {
-        console.log(`Connection interruption handled: ${error.message}`);
+        console.log(`Connection interruption handled: ${(error as Error).message}`);
       } finally {
         if (client) {
           await client.stop();

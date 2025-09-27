@@ -1,0 +1,253 @@
+version: '3.8'
+
+services:
+  # Jaeger Tracing - Complete distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+      - "14250:14250"  # Jaeger collector gRPC
+      - "6831:6831/udp"  # Jaeger agent UDP
+      - "6832:6832/udp"  # Jaeger agent UDP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - observability
+
+  # GlitchTip Error Tracking - Sentry-compatible error tracking
+  postgres_glitchtip:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: glitchtip_password
+    volumes:
+      - glitchtip_db:/var/lib/postgresql/data
+    networks:
+      - observability
+    restart: unless-stopped
+
+  redis_glitchtip:
+    image: redis:7-alpine
+    volumes:
+      - glitchtip_redis:/data
+    networks:
+      - observability
+    restart: unless-stopped
+
+  glitchtip:
+    image: glitchtip/glitchtip:latest
+    depends_on:
+      - postgres_glitchtip
+      - redis_glitchtip
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://glitchtip:glitchtip_password@postgres_glitchtip/glitchtip
+      REDIS_URL: redis://redis_glitchtip:6379
+      SECRET_KEY: "your-secret-key-change-in-production"
+      EMAIL_URL: "smtp://localhost:1025"
+      GLITCHTIP_DOMAIN: "http://localhost:8000"
+      DEFAULT_FROM_EMAIL: "noreply@localhost"
+      CELERY_WORKER_AUTOSCALE: "1,3"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "10000"
+    volumes:
+      - glitchtip_media:/app/media
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    command: celery -A glitchtip worker -l INFO
+    depends_on:
+      - postgres_glitchtip
+      - redis_glitchtip
+    environment:
+      DATABASE_URL: postgres://glitchtip:glitchtip_password@postgres_glitchtip/glitchtip
+      REDIS_URL: redis://redis_glitchtip:6379
+      SECRET_KEY: "your-secret-key-change-in-production"
+    networks:
+      - observability
+    restart: unless-stopped
+
+  glitchtip-beat:
+    image: glitchtip/glitchtip:latest
+    command: celery -A glitchtip beat -l INFO
+    depends_on:
+      - postgres_glitchtip
+      - redis_glitchtip
+    environment:
+      DATABASE_URL: postgres://glitchtip:glitchtip_password@postgres_glitchtip/glitchtip
+      REDIS_URL: redis://redis_glitchtip:6379
+      SECRET_KEY: "your-secret-key-change-in-production"
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana Dashboard - Visualization and alerting
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3001:3000"  # Changed from 3000 to avoid conflict with PromptSmith
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - observability
+    restart: unless-stopped
+
+  # Redis Commander - Redis management (from main compose)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - observability
+      - promptsmith-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Inspector - Protocol debugging and monitoring
+  mcp-inspector:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-inspector
+    ports:
+      - "6274:6274"
+    environment:
+      - NODE_ENV=development
+      - MCP_SERVER_URL=http://promptsmith:3000
+    volumes:
+      - ./logs:/app/logs
+      - ./tools:/app/tools
+    networks:
+      - observability
+      - promptsmith-network
+    depends_on:
+      - jaeger
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6274/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Central Monitoring Dashboard - Custom dashboard for all services
+  monitoring-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitoring
+    ports:
+      - "8888:8888"
+    environment:
+      - JAEGER_URL=http://jaeger:16686
+      - GLITCHTIP_URL=http://glitchtip:8000
+      - GRAFANA_URL=http://grafana:3000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - REDIS_COMMANDER_URL=http://redis-commander:8081
+      - MCP_INSPECTOR_URL=http://mcp-inspector:6274
+    networks:
+      - observability
+    depends_on:
+      - jaeger
+      - glitchtip
+      - grafana
+      - prometheus
+      - redis-commander
+      - mcp-inspector
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  glitchtip_db:
+  glitchtip_redis:
+  glitchtip_media:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  observability:
+    driver: bridge
+  promptsmith-network:
+    external: true

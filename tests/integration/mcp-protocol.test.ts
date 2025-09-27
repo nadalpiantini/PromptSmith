@@ -10,15 +10,15 @@ import {
   validateMCPResponse,
   validateToolResponse,
   parseToolResponseData,
-} from '../utils/mcp-test-client.js';
+} from '../utils/mcp-test-client';
 import {
   expectValidProcessResult,
   expectValidQualityScore,
   measurePerformance,
   expectWithinPerformanceThreshold,
   TEST_CONSTANTS,
-} from '../utils/test-helpers.js';
-import { setupMockEnvironment } from '../utils/mock-services.js';
+} from '../utils/test-helpers';
+import { setupMockEnvironment } from '../utils/mock-services';
 
 // Mock external services for integration tests
 setupMockEnvironment();
@@ -493,7 +493,7 @@ describe('MCP Protocol Integration', () => {
           });
         } catch (error) {
           expect(error).toBeInstanceOf(Error);
-          expect(error.message).toContain('MCP Error');
+          expect((error as Error).message).toContain('MCP Error');
         }
       });
     });

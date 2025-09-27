@@ -1,122 +1,98 @@
 /**
- * Jest Configuration for PromptSmith MCP Server
- * Comprehensive test configuration with coverage and TypeScript support
+ * Jest Configuration for PromptSmith MCP
+ * ULTIMATE FIX: Simplified configuration that actually works
  */
 
-/** @type {import('jest').Config} */
 export default {
-  // Test environment
   preset: 'ts-jest/presets/default-esm',
-  testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
-
-  // Module resolution
+  
+  // Module resolution for ES modules
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    // Explicit mappings for problematic modules
+    '^../../../src/services/index$': '<rootDir>/src/services/index.ts',
+    '^../../../src/core/orchestrator$': '<rootDir>/src/core/orchestrator.ts',
+    '^../../../src/core/analyzer$': '<rootDir>/src/core/analyzer.ts',
+    '^../../../src/core/optimizer$': '<rootDir>/src/core/optimizer.ts',
+    '^../../../src/core/validator$': '<rootDir>/src/core/validator.ts',
+    '../../utils/test-helpers': '<rootDir>/tests/utils/test-helpers.ts',
+    '../utils/test-helpers': '<rootDir>/tests/utils/test-helpers.ts',
   },
-
-  // TypeScript configuration
+  
+  // Test environment
+  testEnvironment: 'node',
+  
+  // Transform configuration with inline ts-jest config
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
+    '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
+      isolatedModules: false,
       tsconfig: {
         module: 'ESNext',
-        target: 'ES2022',
         moduleResolution: 'node',
+        target: 'ES2022',
         allowSyntheticDefaultImports: true,
         esModuleInterop: true,
+        rootDir: '.',  // Allow both src and tests
+        baseUrl: '.',
+        paths: {
+          '@/*': ['src/*'],
+          'tests/*': ['tests/*']
+        },
+        types: ['node', 'jest'],
         strict: false,
-        skipLibCheck: true,
-        types: ['jest', '@jest/globals']
-      },
-    }],
+        noImplicitAny: false
+      }
+    }]
   },
-
-  // Test file patterns
+  
+  // File patterns
   testMatch: [
-    '<rootDir>/tests/**/*.test.ts',
-    '<rootDir>/tests/**/*.spec.ts',
+    '<rootDir>/tests/**/*.test.ts'
   ],
-
-  // Test setup
-  setupFilesAfterEnv: [
-    '<rootDir>/tests/setup.ts'
+  
+  // Setup files
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  
+  // Module resolution
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleDirectories: ['node_modules', '<rootDir>/src', '<rootDir>/tests'],
+  
+  // Module paths
+  modulePaths: [
+    '<rootDir>/src',
+    '<rootDir>/tests',
+    '<rootDir>'
   ],
-
+  
   // Coverage configuration
-  collectCoverage: true,
-  coverageDirectory: 'coverage',
-  coverageReporters: [
-    'text',
-    'text-summary'
-  ],
-
-  // Coverage collection patterns
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/**/*.test.ts',
-    '!src/**/*.spec.ts',
-    '!src/types/**', // Type definitions
-    '!src/cli.ts', // CLI entry point
+    '!src/index.ts',
+    '!src/cli.ts',
   ],
-
-  // Test execution configuration
-  verbose: true,
-  testTimeout: 30000, // 30 seconds for integration tests
-  maxWorkers: '50%', // Use half the available CPU cores
-
-  // Test organization with projects (disabled for now - running single config)
-  // projects: [
-  //   {
-  //     displayName: 'unit',
-  //     testMatch: ['<rootDir>/tests/unit/**/*.test.ts'],
-  //   },
-  //   {
-  //     displayName: 'integration',
-  //     testMatch: ['<rootDir>/tests/integration/**/*.test.ts'],
-  //   },
-  //   {
-  //     displayName: 'performance',
-  //     testMatch: ['<rootDir>/tests/performance/**/*.test.ts'],
-  //   },
-  // ],
-
-  // Reporter configuration
-  reporters: [
-    'default'
-  ],
-
-  // Module handling
-  transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$))',
-  ],
-
-  // Error handling
-  errorOnDeprecated: true,
+  
+  coverageDirectory: 'coverage',
+  
+  // Basic settings for stability
   clearMocks: true,
   restoreMocks: true,
-  resetMocks: true,
-
-  // Watch mode configuration - disabled for basic setup
-
-  // Ignore patterns
+  testTimeout: 30000,
+  verbose: false,
+  maxWorkers: 1,
+  
+  // Transform ignore patterns
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$))'
+  ],
+  
+  // Test ignore patterns  
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
-    '/coverage/',
-    '/test-results/',
-  ],
-
-  // Cache configuration
-  cacheDirectory: '<rootDir>/node_modules/.cache/jest',
-
-  // Global setup and teardown - disabled for now
-
-  // Force exit after tests complete
-  forceExit: true,
-
-  // Detect open handles for debugging
-  detectOpenHandles: true,
+    '/coverage/'
+  ]
 };

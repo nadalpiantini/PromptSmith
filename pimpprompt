@@ -391,6 +391,63 @@ if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "help" ]]; then
     exit 0
 fi
 
+# Comando de verificación
+if [[ "$1" == "--verify" ]]; then
+    echo -e "${CYAN}🔍 pimpprompt: Verificación del Sistema${NC}"
+    echo ""
+    
+    # Check global installation
+    if command -v pimpprompt >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Comando global instalado correctamente${NC}"
+        echo "   Ubicación: $(which pimpprompt)"
+    else
+        echo -e "${RED}❌ Comando global no encontrado${NC}"
+        exit 1
+    fi
+    
+    # Check current directory context
+    echo ""
+    echo -e "${YELLOW}📁 Contexto del Proyecto Actual:${NC}"
+    echo "   Directorio: $(pwd)"
+    
+    # Detect project context
+    if [[ -f "package.json" ]]; then
+        PROJECT_NAME=$(node -p "require('./package.json').name" 2>/dev/null || echo "unknown")
+        echo "   Proyecto: $PROJECT_NAME"
+        
+        # Check for framework
+        if [[ -f "next.config.js" ]] || grep -q '"next"' package.json 2>/dev/null; then
+            echo -e "${GREEN}   Framework: Next.js detectado${NC}"
+        fi
+        
+        # Check for Supabase
+        if grep -q '"@supabase/supabase-js"' package.json 2>/dev/null; then
+            echo -e "${GREEN}   Backend: Supabase detectado${NC}"
+        fi
+        
+        # Check for React
+        if grep -q '"react"' package.json 2>/dev/null; then
+            echo -e "${GREEN}   Frontend: React detectado${NC}"
+        fi
+    else
+        echo "   Sin package.json - proyecto no JavaScript/Node"
+    fi
+    
+    # Test basic functionality
+    echo ""
+    echo -e "${YELLOW}🧪 Prueba de Funcionalidad:${NC}"
+    if pimpprompt --help >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Help command funciona${NC}"
+    else
+        echo -e "${RED}❌ Help command falla${NC}"
+    fi
+    
+    echo ""
+    echo -e "${GREEN}🎉 Verificación completada - pimpprompt está listo para usar${NC}"
+    echo -e "${PURPLE}💡 Usa: pimpprompt \"tu prompt aquí\" para procesar prompts${NC}"
+    exit 0
+fi
+
 # Manejar modo --max para prompts ultra-detallados  
 if [[ "$1" == "--max" ]]; then
     if [ -z "$2" ]; then

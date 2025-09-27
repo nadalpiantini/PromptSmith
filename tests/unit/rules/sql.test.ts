@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { SQLRules } from '../../../src/rules/sql.js';
-import { DomainRule } from '../../../src/types/domain.js';
+import { SQLRules } from '../../../src/rules/sql';
+import { DomainRule } from '../../../src/types/domain';
 
 describe('SQLRules', () => {
   let sqlRules: SQLRules;

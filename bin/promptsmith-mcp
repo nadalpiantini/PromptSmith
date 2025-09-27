@@ -32,21 +32,21 @@ Object.keys(defaultEnv).forEach(key => {
   }
 });
 
-// Find the MCP server entry point
+// Find the patched MCP server entry point
+const patchedScriptPath = join(promptsmithRoot, 'scripts', 'patch-and-run-promptsmith.js');
 const mcpServerPath = join(promptsmithRoot, 'dist', 'mcp-server.js');
-const srcMcpServerPath = join(promptsmithRoot, 'src', 'mcp-server.ts');
 
-// Check if built version exists, otherwise try source
+// Check if patch script exists, otherwise fallback to original
 let serverCommand, serverArgs;
 
-if (existsSync(mcpServerPath)) {
-  // Use built version
+if (existsSync(patchedScriptPath) && existsSync(mcpServerPath)) {
+  // Use patched version for better STDIO compatibility
+  serverCommand = 'node';
+  serverArgs = [patchedScriptPath];
+} else if (existsSync(mcpServerPath)) {
+  // Use built version (fallback)
   serverCommand = 'node';
   serverArgs = [mcpServerPath];
-} else if (existsSync(srcMcpServerPath)) {
-  // Use source version with tsx
-  serverCommand = 'npx';
-  serverArgs = ['tsx', srcMcpServerPath];
 } else {
   console.error('❌ PromptSmith MCP Server not found.');
   console.error('Please run: npm run build');

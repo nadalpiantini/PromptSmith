@@ -43,15 +43,7 @@ pimpprompt --help  # Should work from anywhere
 {
   "mcpServers": {
     "promptsmith": {
-      "command": "node",
-      "args": ["dist/mcp-server.js"],
-      "cwd": "/Users/nadalpiantini/Dev/PrompSmith/PromptSmith",
-      "env": {
-        "SUPABASE_URL": "https://nqzhxukuvmdlpewqytpv.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xemh4dWt1dm1kbHBld3F5dHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY3ODYwNzMsImV4cCI6MjA0MjM2MjA3M30.xLSRRy7FNMHJd9F39R85dU7qOzHLQxnMO0zQfqRZ1Ho",
-        "NODE_ENV": "production",
-        "TELEMETRY_ENABLED": "false"
-      }
+      "command": "promptsmith-mcp"
     }
   }
 }
@@ -63,8 +55,8 @@ pimpprompt --help  # Should work from anywhere
 # Create the MCP settings directory if it doesn't exist
 mkdir -p ~/.cursor
 
-# Copy the pre-configured settings
-cp /Users/nadalpiantini/Dev/PrompSmith/PromptSmith/cursor-mcp-config.json ~/.cursor/mcp-settings.json
+# Copy the simple configuration
+cp /Users/nadalpiantini/Dev/PrompSmith/PromptSmith/cursor-mcp-simple.json ~/.cursor/mcp-settings.json
 ```
 
 ### Step 3: Restart Cursor Completely

@@ -2,7 +2,7 @@
  * Test Helper Utilities
  * Common utilities and mock implementations for testing
  */
-import { ProcessInput, ProcessResult, EvaluationResult, QualityScore, AnalysisResult, ValidationResult, SavedPrompt, SearchResult, ComparisonResult } from '../../src/types/prompt.js';
+import { ProcessInput, ProcessResult, EvaluationResult, QualityScore, AnalysisResult, ValidationResult, SavedPrompt, SearchResult, ComparisonResult } from '../../src/types/prompt';
 export declare function createMockQualityScore(overrides?: Partial<QualityScore>): QualityScore;
 export declare function createMockAnalysisResult(overrides?: Partial<AnalysisResult>): AnalysisResult;
 export declare function createMockValidationResult(overrides?: Partial<ValidationResult>): ValidationResult;

@@ -6,6 +6,9 @@
 import dotenv from 'dotenv';
 import { PromptSmithServer } from './server/index.js';
 
+// Export the PromptSmithServer class from the server directory
+export { PromptSmithServer } from './server/index.js';
+
 // Load environment variables
 dotenv.config();
 

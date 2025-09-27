@@ -179,3 +179,58 @@ Common issues and solutions:
 - **Redis connection**: Ensure Redis is running if caching is enabled
 - **TypeScript errors**: Run `npm run build` to see compilation errors
 - **Test failures**: Check coverage reports in `coverage/` directory
+
+## Important Development Notes
+
+### Project State & Architecture Updates
+- **Current Version**: 1.0.0 - Production ready with full MCP integration
+- **Hybrid Architecture**: Supports both CLI (`pimpprompt`) and MCP server (`promptsmith-mcp`) modes
+- **Global CLI Access**: Install with `npm link` to create global `pimpprompt` command
+- **Production Database**: Uses real Supabase backend at sujeto10.com with fallback system
+
+### CLI vs MCP Modes
+The project uniquely supports dual operation modes:
+- **CLI Mode**: `pimpprompt "create login form"` - Visual output with learning feedback
+- **MCP Mode**: JSON-RPC over stdio for IDE integration (Cursor, etc.)
+- **Auto-detection**: Entry point (`src/cli.ts`) automatically detects mode based on environment
+
+### Binary Commands Configuration
+- `pimpprompt` - Global CLI command created via npm link
+- `promptsmith-mcp` - MCP server binary (in `bin/` directory)
+- Both use the same codebase but different execution modes
+
+### Domain-Specific Optimizations
+The `src/rules/` directory contains specialized processors:
+- Each domain (sql, branding, cine, saas, devops) has specific transformation rules
+- Rules are applied via the Optimizer in the processing pipeline
+- Domain detection happens automatically in the Analyzer phase
+
+### Template System Integration
+- Uses Liquid templating engine (`src/templates/`)
+- Templates are stored in Supabase and cached locally
+- Variables can be extracted and reused across prompts
+- Templates support cross-project sharing
+
+### Quality Scoring Implementation
+Located in `src/scoring/scorer.ts`:
+- 4-dimensional scoring: Clarity (25%), Specificity (30%), Structure (25%), Completeness (20%)
+- Domain-specific weight adjustments
+- Real-time feedback for learning and improvement
+- Scores influence cache TTL and recommendation priority
+
+### Testing Infrastructure
+- Jest configuration supports ESM modules and TypeScript
+- Separate test projects for unit, integration, and performance testing
+- Global setup/teardown scripts in `tests/` directory
+- Coverage thresholds: 85% general, 90% for critical server paths
+
+### Environment Dependencies
+- **Required**: SUPABASE_URL, SUPABASE_ANON_KEY
+- **Optional**: REDIS_URL (caching), OPENAI_API_KEY (LLM refinement)
+- **Fallback**: System works without Redis or OpenAI (degrades gracefully)
+
+### Database Schema
+- Uses Supabase with custom schema in `sql/` directory
+- Tables: prompts, templates, analytics, user_sessions
+- Row Level Security (RLS) enabled for multi-tenant support
+- Migration scripts available via `npm run migrate`

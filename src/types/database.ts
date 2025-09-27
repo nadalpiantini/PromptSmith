@@ -8,7 +8,7 @@ export interface Database {
         Row: {
           id: string;
           name: string | null;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           category: string | null;
           tags: string[] | null;
           description: string | null;
@@ -32,7 +32,7 @@ export interface Database {
         Insert: {
           id?: string;
           name?: string | null;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           category?: string | null;
           tags?: string[] | null;
           description?: string | null;
@@ -56,7 +56,7 @@ export interface Database {
         Update: {
           id?: string;
           name?: string | null;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           category?: string | null;
           tags?: string[] | null;
           description?: string | null;
@@ -136,7 +136,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           name: string;
           pattern: string;
           replacement: string;
@@ -153,7 +153,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           name: string;
           pattern: string;
           replacement: string;
@@ -170,7 +170,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           name?: string;
           pattern?: string;
           replacement?: string;
@@ -190,7 +190,7 @@ export interface Database {
         Row: {
           id: string;
           name: string;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           template_type: 'basic' | 'chain-of-thought' | 'few-shot' | 'role-based' | 'step-by-step';
           template_content: string;
           system_prompt: string | null;
@@ -207,7 +207,7 @@ export interface Database {
         Insert: {
           id?: string;
           name: string;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           template_type: 'basic' | 'chain-of-thought' | 'few-shot' | 'role-based' | 'step-by-step';
           template_content: string;
           system_prompt?: string | null;
@@ -224,7 +224,7 @@ export interface Database {
         Update: {
           id?: string;
           name?: string;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general';
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal';
           template_type?: 'basic' | 'chain-of-thought' | 'few-shot' | 'role-based' | 'step-by-step';
           template_content?: string;
           system_prompt?: string | null;
@@ -246,7 +246,7 @@ export interface Database {
           event_type: string;
           user_id: string | null;
           session_id: string | null;
-          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | null;
+          domain: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal' | null;
           prompt_id: string | null;
           processing_time: number | null;
           input_length: number | null;
@@ -260,7 +260,7 @@ export interface Database {
           event_type: string;
           user_id?: string | null;
           session_id?: string | null;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | null;
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal' | null;
           prompt_id?: string | null;
           processing_time?: number | null;
           input_length?: number | null;
@@ -274,7 +274,7 @@ export interface Database {
           event_type?: string;
           user_id?: string | null;
           session_id?: string | null;
-          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | null;
+          domain?: 'sql' | 'branding' | 'cine' | 'saas' | 'devops' | 'general' | 'mobile' | 'web' | 'backend' | 'frontend' | 'ai' | 'gaming' | 'crypto' | 'education' | 'healthcare' | 'finance' | 'legal' | null;
           prompt_id?: string | null;
           processing_time?: number | null;
           input_length?: number | null;

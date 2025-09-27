@@ -6,15 +6,15 @@ import {
   SearchResult,
   QualityScore,
   PromptDomain,
-  SaveMetadata,
+  SaveMetadata
 } from '../types/prompt.js';
 import { CustomRule } from '../types/domain.js';
+import { mapToValidDomain } from '../utils/domain-mapper.js';
 import {
   qualityScoreToJson,
   jsonToQualityScore,
   safeStringToDate,
   dbDomainToPromptDomain,
-  promptDomainToDbDomain,
   ruleExamplesToJson,
   dbCategoryToRuleCategory,
   jsonToRuleExamples,
@@ -25,14 +25,16 @@ export class SupabaseAdapter {
   private isConnected = false;
 
   constructor(
-    private url: string = process.env.SUPABASE_URL!,
-    private key: string = process.env.SUPABASE_ANON_KEY!
+    _url: string = process.env.SUPABASE_URL!,
+    _key: string = process.env.SUPABASE_ANON_KEY!
   ) {
-    if (!this.url || !this.key) {
+    const url = _url;
+    const key = _key;
+    if (!url || !key) {
       throw new Error('Supabase URL and key are required');
     }
 
-    this.client = createClient<Database>(this.url, this.key, {
+    this.client = createClient<Database>(url, key, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -91,7 +93,7 @@ export class SupabaseAdapter {
       .from('promptsmith_prompts')
       .insert({
         name: metadata.name || null,
-        domain: promptDomainToDbDomain(metadata.domain as PromptDomain || PromptDomain.GENERAL),
+        domain: mapToValidDomain(metadata.domain as PromptDomain || PromptDomain.GENERAL),
         category: metadata.category || null,
         tags: metadata.tags || [],
         description: metadata.description || null,
@@ -135,11 +137,11 @@ export class SupabaseAdapter {
   }> {
     let query = this.client
       .from('promptsmith_prompts')
-      .select('*, user_feedback(rating)', { count: 'exact' });
+      .select('*, promptsmith_user_feedback(rating)', { count: 'exact' });
 
     // Apply filters
     if (params.domain) {
-      query = query.eq('domain', promptDomainToDbDomain(params.domain as PromptDomain));
+      query = query.eq('domain', mapToValidDomain(params.domain as PromptDomain));
     }
 
     if (params.tags && params.tags.length > 0) {
@@ -189,7 +191,7 @@ export class SupabaseAdapter {
         lastUsed: safeStringToDate(prompt.last_used_at || prompt.created_at!),
       },
       createdAt: safeStringToDate(prompt.created_at!),
-      relevance: 1.0, // TODO: Implement proper relevance scoring
+      relevance: this.calculateRelevance(prompt, params.query || '', { domain: params.domain as PromptDomain }),
     }));
 
     return {
@@ -275,7 +277,7 @@ export class SupabaseAdapter {
       .insert({
         user_id: rule.userId || '',
         name: rule.description || 'Unnamed Rule',
-        domain: rule.domain,
+        domain: mapToValidDomain(rule.domain),
         category: rule.category,
         pattern: typeof rule.pattern === 'string' ? rule.pattern : rule.pattern.source,
         replacement: typeof rule.replacement === 'string' ? rule.replacement : rule.replacement.toString(),
@@ -301,7 +303,7 @@ export class SupabaseAdapter {
       .order('priority', { ascending: false });
 
     if (domain) {
-      query = query.eq('domain', domain);
+      query = query.eq('domain', mapToValidDomain(domain));
     }
 
     if (activeOnly) {
@@ -354,7 +356,7 @@ export class SupabaseAdapter {
       .from('promptsmith_templates')
       .insert({
         name: template.name,
-        domain: template.domain,
+        domain: mapToValidDomain(template.domain as PromptDomain),
         template_type: template.templateType as any,
         template_content: template.content,
         system_prompt: template.systemPrompt ?? null,
@@ -381,7 +383,7 @@ export class SupabaseAdapter {
       .order('usage_count', { ascending: false });
 
     if (domain) {
-      query = query.eq('domain', domain);
+      query = query.eq('domain', mapToValidDomain(domain));
     }
 
     if (publicOnly) {
@@ -417,7 +419,7 @@ export class SupabaseAdapter {
         event_type: event.eventType,
         user_id: event.userId ?? null,
         session_id: event.sessionId ?? null,
-        domain: event.domain ?? null,
+        domain: event.domain ? mapToValidDomain(event.domain) : null,
         prompt_id: event.promptId ?? null,
         processing_time: event.processingTime ?? null,
         input_length: event.inputLength ?? null,
@@ -546,5 +548,151 @@ export class SupabaseAdapter {
     } catch {
       return false;
     }
+  }
+
+  private calculateRelevance(
+    prompt: any, 
+    query: string, 
+    options?: { domain?: PromptDomain }
+  ): number {
+    if (!query) {
+      return 1.0; // Default relevance when no search query
+    }
+
+    let relevance = 0;
+    const queryLower = query.toLowerCase();
+    const promptText = (prompt.original_prompt || '').toLowerCase();
+    const refinedText = (prompt.refined_prompt || '').toLowerCase();
+    const description = (prompt.description || '').toLowerCase();
+    const tags = prompt.tags || [];
+
+    // 1. Term matching in prompt content (40% weight)
+    const termMatches = this.calculateTermMatches(queryLower, promptText, refinedText, description);
+    relevance += termMatches * 0.4;
+
+    // 2. Usage frequency and success rate (30% weight)
+    const usageScore = this.calculateUsageScore(prompt);
+    relevance += usageScore * 0.3;
+
+    // 3. Domain matching (20% weight)
+    const domainScore = this.calculateDomainScore(prompt.domain, options?.domain);
+    relevance += domainScore * 0.2;
+
+    // 4. Recency factor (10% weight)
+    const recencyScore = this.calculateRecencyScore(prompt.last_used_at || prompt.created_at);
+    relevance += recencyScore * 0.1;
+
+    // 5. Tag matching bonus
+    const tagBonus = this.calculateTagBonus(tags, queryLower);
+    relevance += tagBonus;
+
+    return Math.min(relevance, 1.0);
+  }
+
+  private calculateTermMatches(
+    query: string, 
+    original: string, 
+    refined: string, 
+    description: string
+  ): number {
+    const queryTerms = query.split(/\s+/).filter(term => term.length > 2);
+    if (queryTerms.length === 0) return 0.5;
+
+    let matches = 0;
+    const totalTerms = queryTerms.length;
+
+    queryTerms.forEach(term => {
+      // Exact matches get full points
+      if (original.includes(term) || refined.includes(term)) {
+        matches += 1.0;
+      } else if (description.includes(term)) {
+        matches += 0.8; // Description matches slightly lower
+      } else {
+        // Partial matches
+        const partialInOriginal = original.includes(term.substring(0, Math.max(3, term.length - 2)));
+        const partialInRefined = refined.includes(term.substring(0, Math.max(3, term.length - 2)));
+        if (partialInOriginal || partialInRefined) {
+          matches += 0.5;
+        }
+      }
+    });
+
+    return Math.min(matches / totalTerms, 1.0);
+  }
+
+  private calculateUsageScore(prompt: any): number {
+    const usageCount = prompt.usage_count || 0;
+    const successRate = prompt.success_rate || 0;
+
+    // Normalize usage count (logarithmic scale)
+    const usageFactor = Math.min(Math.log10(usageCount + 1) / 2, 1.0);
+    
+    // Combine usage frequency and success rate
+    return (usageFactor * 0.6) + (successRate * 0.4);
+  }
+
+  private calculateDomainScore(promptDomain: string, queryDomain?: PromptDomain): number {
+    if (!queryDomain) return 0.5; // Neutral when no domain specified
+    
+    // Convert database domain to prompt domain for comparison
+    const convertedDomain = dbDomainToPromptDomain(promptDomain as any);
+    
+    // Exact match gets full score
+    if (convertedDomain === queryDomain) return 1.0;
+    
+    // Related domains get partial score
+    const relatedDomains: Record<PromptDomain, PromptDomain[]> = {
+      [PromptDomain.FRONTEND]: [PromptDomain.MOBILE, PromptDomain.SAAS],
+      [PromptDomain.BACKEND]: [PromptDomain.DEVOPS, PromptDomain.SQL],
+      [PromptDomain.MOBILE]: [PromptDomain.FRONTEND, PromptDomain.SAAS],
+      [PromptDomain.SQL]: [PromptDomain.BACKEND, PromptDomain.DEVOPS],
+      [PromptDomain.SAAS]: [PromptDomain.FRONTEND, PromptDomain.MOBILE, PromptDomain.BACKEND],
+      [PromptDomain.DEVOPS]: [PromptDomain.BACKEND, PromptDomain.SQL],
+      [PromptDomain.BRANDING]: [PromptDomain.SAAS],
+      [PromptDomain.CINE]: [],
+      [PromptDomain.AI]: [PromptDomain.BACKEND],
+      [PromptDomain.GAMING]: [PromptDomain.FRONTEND],
+      [PromptDomain.CRYPTO]: [PromptDomain.BACKEND],
+      [PromptDomain.EDUCATION]: [],
+      [PromptDomain.HEALTHCARE]: [PromptDomain.SAAS],
+      [PromptDomain.FINANCE]: [PromptDomain.BACKEND, PromptDomain.CRYPTO],
+      [PromptDomain.LEGAL]: [],
+      [PromptDomain.GENERAL]: [],
+      [PromptDomain.WEB]: [PromptDomain.FRONTEND]
+    };
+
+    const related = relatedDomains[queryDomain] || [];
+    if (related.includes(convertedDomain)) return 0.7;
+    
+    return 0.2; // Low score for unrelated domains
+  }
+
+  private calculateRecencyScore(lastUsed: string): number {
+    if (!lastUsed) return 0.1;
+    
+    const now = new Date();
+    const lastUsedDate = new Date(lastUsed);
+    const daysSince = (now.getTime() - lastUsedDate.getTime()) / (1000 * 60 * 60 * 24);
+    
+    // Recent usage gets higher score (exponential decay)
+    if (daysSince < 1) return 1.0;
+    if (daysSince < 7) return 0.8;
+    if (daysSince < 30) return 0.6;
+    if (daysSince < 90) return 0.4;
+    if (daysSince < 365) return 0.2;
+    return 0.1;
+  }
+
+  private calculateTagBonus(tags: string[], query: string): number {
+    if (!tags || tags.length === 0) return 0;
+    
+    let bonus = 0;
+    tags.forEach(tag => {
+      if (query.includes(tag.toLowerCase())) {
+        bonus += 0.1; // Small bonus for each matching tag
+      }
+    });
+    
+    return Math.min(bonus, 0.2); // Cap tag bonus at 0.2
   }
 }

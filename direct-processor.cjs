@@ -24,8 +24,14 @@ class DirectProcessor {
 
   async processPrompt(raw, domain = 'general', tone = 'professional') {
     try {
+      // Detect project context from current directory
+      const projectContext = this.detectProjectContext();
+      if (projectContext.domain && domain === 'general') {
+        domain = projectContext.domain;
+      }
+      
       // Simulate processing with actual improvements
-      const refined = this.improvePrompt(raw, domain, tone);
+      const refined = this.improvePrompt(raw, domain, tone, projectContext);
       
       const score = {
         clarity: 0.9,
@@ -54,8 +60,14 @@ class DirectProcessor {
 
   async processPromptMAX(raw, domain = 'general', tone = 'professional') {
     try {
+      // Detect project context from current directory
+      const projectContext = this.detectProjectContext();
+      if (projectContext.domain && domain === 'general') {
+        domain = projectContext.domain;
+      }
+      
       // Generar prompt ultra-detallado con modo MAX
-      const refined = this.generateMaxPrompt(raw, domain, tone);
+      const refined = this.generateMaxPrompt(raw, domain, tone, projectContext);
       
       const score = {
         clarity: 1.0,
@@ -84,19 +96,22 @@ class DirectProcessor {
     }
   }
 
-  improvePrompt(raw, domain, tone) {
+  improvePrompt(raw, domain, tone, projectContext = {}) {
     // Process Spanish and translate intentions
     const processedPrompt = this.processSpanishInput(raw);
     const intent = this.detectIntent(processedPrompt);
     
+    // Include project context in processing
+    const enhancedPrompt = this.enhanceWithProjectContext(processedPrompt, projectContext);
+    
     // Generate maximized prompt with structured sections
     const sections = {
-      objective: this.generateObjective(processedPrompt, domain, intent),
-      requirements: this.generateRequirements(processedPrompt, domain),
-      architecture: this.generateArchitecture(domain),
+      objective: this.generateObjective(enhancedPrompt, domain, intent, projectContext),
+      requirements: this.generateRequirements(enhancedPrompt, domain, projectContext),
+      architecture: this.generateArchitecture(domain, projectContext),
       performance: this.generatePerformanceCriteria(domain),
       security: this.generateSecurityRequirements(domain),
-      acceptance: this.generateAcceptanceCriteria(processedPrompt, domain, intent),
+      acceptance: this.generateAcceptanceCriteria(enhancedPrompt, domain, intent),
       documentation: this.generateDocumentationRequirements(domain),
       testing: this.generateTestingPlan(domain),
       implementation: this.generateImplementationSteps(domain, intent)
@@ -152,24 +167,27 @@ ${sections.implementation}
     return maximizedPrompt;
   }
 
-  generateMaxPrompt(raw, domain, tone) {
+  generateMaxPrompt(raw, domain, tone, projectContext = {}) {
     // Procesar input en español y detectar intención
     const processedPrompt = this.processSpanishInput(raw);
     const intent = this.detectIntent(processedPrompt);
     
+    // Include project context in processing
+    const enhancedPrompt = this.enhanceWithProjectContext(processedPrompt, projectContext);
+    
     // Generar secciones ultra-detalladas
     const sections = {
-      objective: this.generateObjective(processedPrompt, domain, intent),
-      requirements: this.generateRequirements(processedPrompt, domain),
-      architecture: this.generateArchitecture(domain),
+      objective: this.generateObjective(enhancedPrompt, domain, intent, projectContext),
+      requirements: this.generateRequirements(enhancedPrompt, domain, projectContext),
+      architecture: this.generateArchitecture(domain, projectContext),
       performance: this.generatePerformanceCriteria(domain),
       security: this.generateSecurityRequirements(domain),
-      acceptance: this.generateAcceptanceCriteria(processedPrompt, domain, intent),
+      acceptance: this.generateAcceptanceCriteria(enhancedPrompt, domain, intent),
       documentation: this.generateDocumentationRequirements(domain),
       testing: this.generateTestingPlan(domain),
       implementation: this.generateImplementationSteps(domain, intent),
-      examples: this.generateExamples(domain, intent),
-      troubleshooting: this.generateTroubleshooting(domain),
+      examples: this.generateExamples(domain, intent, projectContext),
+      troubleshooting: this.generateTroubleshooting(domain, enhancedPrompt),
       maintenance: this.generateMaintenanceGuide(domain),
       monitoring: this.generateMonitoringStrategy(domain),
       rollback: this.generateRollbackPlan(domain)
@@ -373,18 +391,225 @@ ${sections.rollback}
     return `${domain}_${baseTemplate}`;
   }
 
-  generateObjective(prompt, domain, intent) {
+  detectProjectContext() {
+    const fs = require('fs');
+    const path = require('path');
+    const cwd = process.cwd();
+    
+    let context = {
+      projectName: path.basename(cwd),
+      directory: cwd,
+      domain: 'general',
+      framework: null,
+      tech: [],
+      isNextJS: false,
+      isReact: false,
+      hasSupabase: false,
+      hasDatabase: false
+    };
+    
+    try {
+      // Check for package.json
+      const packagePath = path.join(cwd, 'package.json');
+      if (fs.existsSync(packagePath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+        context.name = packageJson.name;
+        
+        const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+        
+        // Detect framework and domain
+        if (deps.next) {
+          context.framework = 'Next.js';
+          context.isNextJS = true;
+          context.domain = 'web';
+        }
+        
+        if (deps.react) {
+          context.isReact = true;
+          context.domain = 'web';
+        }
+        
+        if (deps['@supabase/supabase-js']) {
+          context.hasSupabase = true;
+          context.hasDatabase = true;
+          context.domain = 'saas';
+        }
+        
+        if (deps.express || deps.fastify || deps.koa) {
+          context.domain = 'backend';
+        }
+        
+        // Detect by directory name patterns
+        const dirName = context.projectName.toLowerCase();
+        if (dirName.includes('axis6') || dirName.includes('mvp')) {
+          context.domain = 'saas';
+          context.tech.push('Supabase', 'Authentication', 'MVP');
+        }
+        
+        if (dirName.includes('padelia')) {
+          context.domain = 'web';
+          context.tech.push('Web Development');
+        }
+      }
+      
+      // Check for other indicators
+      if (fs.existsSync(path.join(cwd, 'next.config.js'))) {
+        context.framework = 'Next.js';
+        context.isNextJS = true;
+        context.domain = 'web';
+      }
+      
+      if (fs.existsSync(path.join(cwd, 'supabase'))) {
+        context.hasSupabase = true;
+        context.domain = 'saas';
+      }
+      
+    } catch (error) {
+      // Continue with defaults if detection fails
+    }
+    
+    return context;
+  }
+  
+  enhanceWithProjectContext(prompt, context) {
+    if (!context || !context.projectName) return prompt;
+    
+    let enhanced = prompt;
+    
+    // Add project context to the prompt
+    if (context.framework) {
+      enhanced += ` (using ${context.framework})`;
+    }
+    
+    if (context.hasSupabase) {
+      enhanced += ` with Supabase backend`;
+    }
+    
+    if (context.projectName && context.projectName !== 'general') {
+      enhanced += ` for ${context.projectName} project`;
+    }
+    
+    return enhanced;
+  }
+
+  generateObjective(prompt, domain, intent, projectContext = {}) {
+    // Analizar el prompt específico para generar objetivos contextualmente relevantes
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Context-specific objectives
+    if (projectContext.projectName) {
+      if (projectContext.hasSupabase && projectContext.isNextJS) {
+        if (lowerPrompt.includes('auth') || lowerPrompt.includes('login') || lowerPrompt.includes('user')) {
+          return `Implement robust user authentication system for ${projectContext.projectName} using Supabase Auth with email/password and magic link support. Ensure proper session management, profile creation, and secure access controls.`;
+        }
+        if (lowerPrompt.includes('dashboard') || lowerPrompt.includes('data') || lowerPrompt.includes('real-time')) {
+          return `Create a comprehensive dashboard interface for ${projectContext.projectName} that displays user data from Supabase with real-time updates, responsive design, and intuitive navigation using Next.js 15 and React.`;
+        }
+        if (lowerPrompt.includes('add') || lowerPrompt.includes('create') || lowerPrompt.includes('build')) {
+          return `Develop a new feature for ${projectContext.projectName} using Next.js 15 with TypeScript and Supabase backend, following modern React patterns and optimized for performance and SEO.`;
+        }
+      } else if (projectContext.framework === 'Next.js') {
+        return `Develop a ${domain} feature for ${projectContext.projectName} using Next.js 15 with TypeScript, following modern React patterns and optimized for performance and SEO.`;
+      } else if (projectContext.projectName.includes('axis6') || projectContext.projectName.includes('mvp')) {
+        return `Implement feature for ${projectContext.projectName} MVP with focus on user experience, scalability, and rapid deployment.`;
+      }
+    }
+    
+    // Detectar problemas de instalación/configuración específicos
+    if (lowerPrompt.includes('no he logrado') || lowerPrompt.includes('no puedo') || lowerPrompt.includes('no funciona')) {
+      if (lowerPrompt.includes('promptsmith') || lowerPrompt.includes('pimpprompt')) {
+        return `Diagnosticar y resolver los problemas de acceso a PromptSmith/pimpprompt desde otros proyectos. Identificar las causas raíz de los fallos de invocación y establecer una configuración global funcional que permita el uso consistente de la herramienta desde cualquier directorio o proyecto.`;
+      }
+      return `Identificar y resolver los problemas técnicos reportados. Diagnosticar las causas raíz, implementar soluciones efectivas y establecer procedimientos para prevenir recurrencias futuras.`;
+    }
+    
+    // Detectar preguntas de troubleshooting y análisis
+    if (lowerPrompt.includes('porque') || lowerPrompt.includes('por que') || lowerPrompt.includes('como') || lowerPrompt.includes('ultrathink')) {
+      if (lowerPrompt.includes('invocar') || lowerPrompt.includes('acceso') || lowerPrompt.includes('desde otros proyectos')) {
+        return `Realizar un análisis exhaustivo de la configuración y arquitectura de PromptSmith para identificar por qué no se puede invocar desde otros proyectos. Proporcionar una solución completa que establezca acceso universal y confiable.`;
+      }
+      return `Realizar un análisis técnico profundo para entender las causas subyacentes de la situación planteada y desarrollar estrategias de resolución efectivas con implementación práctica.`;
+    }
+    
+    // Objetivos específicos por intent
     const objectives = {
       sprint_completion: `Complete all pending tasks, resolve outstanding issues, and ensure 100% functionality before closing the current development sprint. Focus on delivering production-ready code with comprehensive testing and documentation.`,
       development: `Develop a comprehensive ${domain} solution that meets all specified requirements, follows industry best practices, and delivers exceptional user experience.`,
       optimization: `Optimize existing systems for maximum performance, scalability, and maintainability while preserving existing functionality and improving overall user experience.`,
       testing: `Implement comprehensive testing strategy to validate functionality, performance, and reliability across all components and user scenarios.`,
+      configuration: `Establish proper configuration and setup procedures to ensure reliable functionality across different environments and use cases.`,
+      troubleshooting: `Diagnose system issues systematically, identify root causes, and implement comprehensive solutions with preventive measures.`,
       general: `Create a robust, scalable solution that addresses the specified requirements with professional-grade implementation and comprehensive quality assurance.`
     };
     return objectives[intent] || objectives.general;
   }
 
-  generateRequirements(prompt, domain) {
+  generateRequirements(prompt, domain, projectContext = {}) {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Context-specific requirements
+    if (projectContext.hasSupabase && (lowerPrompt.includes('auth') || lowerPrompt.includes('user') || lowerPrompt.includes('login'))) {
+      return [
+        "Implement Supabase Auth integration with email/password and magic links",
+        "Set up Row Level Security (RLS) policies for user data protection",
+        "Create user profile management with auto-profile creation",
+        "Configure proper session handling and token refresh",
+        "Implement secure logout and session cleanup",
+        "Add email confirmation flow with custom templates",
+        "Set up password reset functionality",
+        "Create protected routes and authentication guards",
+        "Implement proper error handling for auth failures",
+        "Add loading states and UX feedback for auth operations"
+      ].map(req => req);
+    }
+    
+    if (projectContext.isNextJS && projectContext.hasSupabase) {
+      return [
+        "Next.js 15 App Router implementation with TypeScript",
+        "Supabase client configuration for SSR and client-side",
+        "Server Actions for secure data mutations",
+        "Real-time subscriptions using Supabase realtime",
+        "Optimistic UI updates for better user experience",
+        "Proper error boundaries and fallback UI",
+        "Mobile-responsive design with Tailwind CSS",
+        "Performance optimization with React 19 features",
+        "SEO optimization with Next.js metadata API",
+        "Production deployment configuration"
+      ].map(req => req);
+    }
+    
+    // Requisitos específicos para problemas de configuración/acceso
+    if (lowerPrompt.includes('no he logrado') || lowerPrompt.includes('invocar') || lowerPrompt.includes('desde otros proyectos')) {
+      if (lowerPrompt.includes('promptsmith') || lowerPrompt.includes('pimpprompt')) {
+        return [
+          "Verificar instalación global de pimpprompt y promptsmith-mcp",
+          "Validar configuración de PATH y variables de entorno",
+          "Confirmar que npm link funciona correctamente en todos los proyectos",
+          "Establecer acceso universal desde cualquier directorio",
+          "Verificar permisos de ejecución en binarios globales",
+          "Configurar MCP servers en Claude Desktop/Cursor correctamente",
+          "Probar invocación desde al menos 3 proyectos diferentes",
+          "Documentar procedimientos de instalación y troubleshooting",
+          "Crear scripts de verificación automática",
+          "Establecer monitoreo de funcionamiento correcto"
+        ].map(req => `${req.split('.')[0].trim()}`);
+      }
+    }
+    
+    // Requisitos para troubleshooting general
+    if (lowerPrompt.includes('porque') || lowerPrompt.includes('como') || lowerPrompt.includes('ultrathink')) {
+      return [
+        "Diagnóstico sistemático de la causa raíz del problema",
+        "Análisis de logs y mensajes de error detallado",
+        "Verificación de dependencias y prerequisitos",
+        "Testing en múltiples entornos y configuraciones",
+        "Documentación de hallazgos y proceso de resolución",
+        "Implementación de solución robusta y duradera",
+        "Validación de la solución en escenarios reales",
+        "Creación de procedimientos preventivos"
+      ].map(req => `${req.split('.')[0].trim()}`);
+    }
+    
     const baseRequirements = [
       "Implementación completa sin funcionalidades pendientes",
       "Código limpio siguiendo principios SOLID",
@@ -441,7 +666,32 @@ ${sections.rollback}
     return allRequirements.map((req, index) => `${index + 1}. ${req}`).join('\n');
   }
 
-  generateArchitecture(domain) {
+  generateArchitecture(domain, projectContext = {}) {
+    // Context-specific architecture
+    if (projectContext.isNextJS && projectContext.hasSupabase) {
+      return `- Next.js 15 App Router with TypeScript
+- React Server Components for optimal performance
+- Supabase as Backend-as-a-Service (authentication, database, storage)
+- Server Actions for secure data mutations
+- Client Components for interactive features
+- Real-time subscriptions with Supabase realtime
+- Row Level Security (RLS) for data protection
+- Tailwind CSS for styling with responsive design
+- Deployment on Vercel with automatic previews
+- Environment-based configuration (dev, staging, prod)`;
+    }
+    
+    if (projectContext.framework === 'Next.js') {
+      return `- Next.js 15 App Router with TypeScript
+- React Server Components and Client Components
+- API Routes for backend functionality
+- Server-side rendering (SSR) and static generation (SSG)
+- Component-based architecture with proper separation
+- Responsive design with modern CSS frameworks
+- Performance optimization with Next.js built-in features
+- SEO optimization with metadata API
+- Production deployment configuration`;
+    }
     const architectures = {
       sql: `- Diseño de base de datos normalizada con relaciones claras
 - Stored procedures para lógica compleja de negocio
@@ -766,7 +1016,76 @@ ${sections.rollback}
     return domainSteps[domain] || generalSteps;
   }
 
-  generateExamples(domain, intent) {
+  generateExamples(domain, intent, projectContext = {}) {
+    // Context-specific examples
+    if (projectContext.hasSupabase && projectContext.isNextJS) {
+      return `**Ejemplo de implementación para ${projectContext.projectName || 'Next.js + Supabase'}:**
+\`\`\`typescript
+// app/auth/login/page.tsx
+import { createClient } from '@/utils/supabase/client'
+import { AuthForm } from '@/components/auth/auth-form'
+
+export default function LoginPage() {
+  return (
+    <div className="max-w-md mx-auto mt-8">
+      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      <AuthForm />
+    </div>
+  )
+}
+
+// components/auth/auth-form.tsx
+'use client'
+import { useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
+
+export function AuthForm() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (error) {
+      console.error('Error:', error.message)
+    } else {
+      window.location.href = '/dashboard'
+    }
+    setLoading(false)
+  }
+
+  return (
+    <form onSubmit={handleSignIn}>
+      <input 
+        type="email" 
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        required 
+      />
+      <input 
+        type="password"
+        value={password} 
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        required 
+      />
+      <button type="submit" disabled={loading}>
+        {loading ? 'Signing in...' : 'Sign In'}
+      </button>
+    </form>
+  )
+}
+\`\`\``;
+    }
     const examples = {
       sql: `**Ejemplo 1: Query de análisis de ventas**
 \`\`\`sql
@@ -1029,7 +1348,65 @@ async handleSubscriptionCreated(event: SubscriptionCreated) {
 \`\`\``;
   }
 
-  generateTroubleshooting(domain) {
+  generateTroubleshooting(domain, prompt = '') {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Troubleshooting específico para PromptSmith/pimpprompt
+    if (lowerPrompt.includes('promptsmith') || lowerPrompt.includes('pimpprompt') || lowerPrompt.includes('invocar') || lowerPrompt.includes('desde otros proyectos')) {
+      return `**Problemas Específicos de PromptSmith y Soluciones:**
+
+🔴 **Error: "pimpprompt: command not found"**
+- Verificar instalación global: \`npm list -g | grep promptsmith\`
+- Reinstalar globalmente: \`npm install -g promptsmith-mcp\`
+- Verificar npm link: \`npm link\` desde el directorio del proyecto
+- Comprobar PATH: \`echo $PATH | grep npm\`
+
+🔴 **Error: "Cannot find module" al ejecutar pimpprompt**
+- Verificar dependencias: \`npm install\` en directorio PromptSmith
+- Rebuild del proyecto: \`npm run build\`
+- Verificar permisos: \`chmod +x bin/pimpprompt\`
+- Comprobar symlinks: \`ls -la ~/.nvm/versions/node/*/bin/pimpprompt\`
+
+🔴 **Error: MCP server not responding**
+- Verificar configuración en \`~/.cursor/mcp.json\` o Claude Desktop
+- Comprobar variables de entorno: SUPABASE_URL, SUPABASE_ANON_KEY
+- Verificar puerto y proceso: \`ps aux | grep promptsmith\`
+- Revisar logs: \`tail -f ~/.cursor/logs/mcp.log\`
+
+🔴 **Error: Database connection failures**
+- Validar variables de entorno en \`.env\`
+- Comprobar conectividad a Supabase: \`curl -I $SUPABASE_URL\`
+- Verificar API key válida
+- Probar conexión manual con psql/cliente SQL
+
+🔴 **Error: "No access from other projects"**
+- Verificar npm global bin directory: \`npm config get prefix\`
+- Comprobar PATH includes npm globals: \`which pimpprompt\`
+- Probar desde diferentes directorios: \`cd /tmp && pimpprompt\`
+- Verificar permisos de ejecución en ~/.nvm/versions/node/*/bin/
+
+**Comandos de Diagnóstico Rápido:**
+\`\`\`bash
+# Verificación completa del sistema
+which pimpprompt
+npm list -g promptsmith-mcp
+echo $PATH | grep npm
+ls -la ~/.nvm/versions/node/*/bin/pimpprompt
+cd /tmp && pimpprompt --help
+\`\`\`
+
+**Scripts de Reparación Automática:**
+\`\`\`bash
+# Reinstalación completa
+npm unlink promptsmith-mcp
+npm install -g promptsmith-mcp
+cd ~/Dev/PrompSmith/PromptSmith
+npm link
+chmod +x bin/pimpprompt
+\`\`\``;
+    }
+    
+    // Troubleshooting genérico
     return `**Problemas Comunes y Soluciones:**
 
 🔴 **Error: Connection timeout/refused**

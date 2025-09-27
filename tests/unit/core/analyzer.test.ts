@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PromptAnalyzer } from '../../../src/core/analyzer.js';
-import { AnalysisResult } from '../../../src/types/prompt.js';
+import { PromptAnalyzer } from '../../../src/core/analyzer';
+import { AnalysisResult } from '../../../src/types/prompt';
 
 describe('PromptAnalyzer', () => {
   let analyzer: PromptAnalyzer;

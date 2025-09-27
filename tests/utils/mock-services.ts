@@ -3,6 +3,7 @@
  * Comprehensive mocks for all external services and dependencies
  */
 
+// @ts-nocheck
 import { jest } from '@jest/globals';
 
 // Mock Supabase client
@@ -19,35 +20,35 @@ export function createMockSupabaseClient() {
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
     offset: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+    single: jest.fn().mockResolvedValue({ data: null, error: null } as any),
+    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null } as any),
   };
 
   const mockFrom = {
     select: jest.fn().mockReturnValue({
       ...mockSelect,
-      then: jest.fn().mockResolvedValue({ data: [], error: null }),
+      then: jest.fn().mockResolvedValue({ data: [], error: null } as any),
     }),
     insert: jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        single: jest.fn().mockResolvedValue({ data: null, error: null } as any),
       }),
     }),
     update: jest.fn().mockReturnValue({
       eq: jest.fn().mockReturnValue({
         select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({ data: null, error: null }),
+          single: jest.fn().mockResolvedValue({ data: null, error: null } as any),
         }),
       }),
     }),
     delete: jest.fn().mockReturnValue({
-      eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+      eq: jest.fn().mockResolvedValue({ data: null, error: null } as any),
     }),
   };
 
   return {
     from: jest.fn().mockReturnValue(mockFrom),
-    rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
+    rpc: jest.fn().mockResolvedValue({ data: null, error: null } as any),
   };
 }
 
@@ -56,34 +57,35 @@ export function createMockRedisClient() {
   const store = new Map<string, string>();
 
   return {
-    get: jest.fn().mockImplementation((key: string) =>
-      Promise.resolve(store.get(key) || null)
-    ),
-    set: jest.fn().mockImplementation((key: string, value: string, ttl?: number) => {
-      store.set(key, value);
+    get: jest.fn().mockImplementation(((key: unknown) =>
+      Promise.resolve(store.get(key as string) || null)
+    ) as any),
+    set: jest.fn().mockImplementation(((key: unknown, value: unknown, ttl?: unknown) => {
+      store.set(key as string, value as string);
       return Promise.resolve('OK');
-    }),
-    del: jest.fn().mockImplementation((key: string) => {
-      const existed = store.has(key);
-      store.delete(key);
+    }) as any),
+    del: jest.fn().mockImplementation(((key: unknown) => {
+      const existed = store.has(key as string);
+      store.delete(key as string);
       return Promise.resolve(existed ? 1 : 0);
-    }),
-    exists: jest.fn().mockImplementation((key: string) =>
-      Promise.resolve(store.has(key) ? 1 : 0)
-    ),
-    keys: jest.fn().mockImplementation((pattern: string) => {
+    }) as any),
+    exists: jest.fn().mockImplementation(((key: unknown) =>
+      Promise.resolve(store.has(key as string) ? 1 : 0)
+    ) as any),
+    keys: jest.fn().mockImplementation(((pattern: unknown) => {
       // Simple pattern matching for tests
       const keys = Array.from(store.keys());
-      if (pattern === '*') return Promise.resolve(keys);
+      const patternStr = pattern as string;
+      if (patternStr === '*') return Promise.resolve(keys);
 
-      const regex = new RegExp(pattern.replace('*', '.*'));
+      const regex = new RegExp(patternStr.replace('*', '.*'));
       return Promise.resolve(keys.filter(key => regex.test(key)));
-    }),
+    }) as any),
     flushall: jest.fn().mockImplementation(() => {
       store.clear();
       return Promise.resolve('OK');
     }),
-    quit: jest.fn().mockResolvedValue('OK'),
+    quit: jest.fn().mockResolvedValue('OK' as any),
   };
 }
 
@@ -101,7 +103,7 @@ export function createMockOpenAIClient() {
           completion_tokens: 20,
           total_tokens: 30,
         },
-      }),
+      } as any),
     },
     chat: {
       completions: {
@@ -118,7 +120,7 @@ export function createMockOpenAIClient() {
             completion_tokens: 25,
             total_tokens: 40,
           },
-        }),
+        } as any),
       },
     },
   };
@@ -138,7 +140,7 @@ export function createMockNLPService() {
       entities: [{ text: 'user table', label: 'TECH', confidence: 0.9 }],
       complexity: 0.3,
       readability: 0.8,
-    }),
+    } as any),
     extractKeywords: jest.fn().mockReturnValue(['user', 'table', 'create']),
     detectLanguage: jest.fn().mockReturnValue('en'),
     calculateReadability: jest.fn().mockReturnValue(0.8),
@@ -153,36 +155,39 @@ export function createMockFileSystem() {
   const files = new Map<string, string>();
 
   return {
-    readFile: jest.fn().mockImplementation((path: string) => {
-      if (files.has(path)) {
-        return Promise.resolve(files.get(path));
+    readFile: jest.fn().mockImplementation(((path: unknown) => {
+      const pathStr = path as string;
+      if (files.has(pathStr)) {
+        return Promise.resolve(files.get(pathStr));
       }
-      return Promise.reject(new Error(`File not found: ${path}`));
-    }),
-    writeFile: jest.fn().mockImplementation((path: string, content: string) => {
-      files.set(path, content);
+      return Promise.reject(new Error(`File not found: ${pathStr}`));
+    }) as any),
+    writeFile: jest.fn().mockImplementation(((path: unknown, content: unknown) => {
+      files.set(path as string, content as string);
       return Promise.resolve();
-    }),
-    exists: jest.fn().mockImplementation((path: string) =>
-      Promise.resolve(files.has(path))
-    ),
-    unlink: jest.fn().mockImplementation((path: string) => {
-      const existed = files.has(path);
-      files.delete(path);
-      return existed ? Promise.resolve() : Promise.reject(new Error(`File not found: ${path}`));
-    }),
-    mkdir: jest.fn().mockResolvedValue(undefined),
-    stat: jest.fn().mockImplementation((path: string) => {
-      if (!files.has(path)) {
-        return Promise.reject(new Error(`File not found: ${path}`));
+    }) as any),
+    exists: jest.fn().mockImplementation(((path: unknown) =>
+      Promise.resolve(files.has(path as string))
+    ) as any),
+    unlink: jest.fn().mockImplementation(((path: unknown) => {
+      const pathStr = path as string;
+      const existed = files.has(pathStr);
+      files.delete(pathStr);
+      return existed ? Promise.resolve() : Promise.reject(new Error(`File not found: ${pathStr}`));
+    }) as any),
+    mkdir: jest.fn().mockResolvedValue(undefined as any),
+    stat: jest.fn().mockImplementation(((path: unknown) => {
+      const pathStr = path as string;
+      if (!files.has(pathStr)) {
+        return Promise.reject(new Error(`File not found: ${pathStr}`));
       }
       return Promise.resolve({
         isFile: () => true,
         isDirectory: () => false,
-        size: files.get(path)?.length || 0,
+        size: files.get(pathStr)?.length || 0,
         mtime: new Date(),
       });
-    }),
+    }) as any),
   };
 }
 
@@ -216,11 +221,11 @@ export function createMockEmailService() {
     send: jest.fn().mockResolvedValue({
       messageId: 'mock-message-id',
       response: 'Message sent',
-    }),
+    } as any),
     sendTemplate: jest.fn().mockResolvedValue({
       messageId: 'mock-template-message-id',
       response: 'Template sent',
-    }),
+    } as any),
   };
 }
 
@@ -229,10 +234,10 @@ export function createMockWebhookService() {
   const deliveries: any[] = [];
 
   return {
-    send: jest.fn().mockImplementation((url: string, payload: any) => {
+    send: jest.fn().mockImplementation(((url: unknown, payload: unknown) => {
       deliveries.push({ url, payload, timestamp: new Date() });
       return Promise.resolve({ status: 200, response: 'OK' });
-    }),
+    }) as any),
     getDeliveries: jest.fn().mockReturnValue(deliveries),
     clearDeliveries: jest.fn().mockImplementation(() => {
       deliveries.length = 0;
@@ -245,7 +250,7 @@ export function createMockQueueService() {
   const jobs: any[] = [];
 
   return {
-    add: jest.fn().mockImplementation((name: string, data: any, options?: any) => {
+    add: jest.fn().mockImplementation(((name: unknown, data: unknown, options?: unknown) => {
       const job = {
         id: `job-${Date.now()}`,
         name,
@@ -256,17 +261,17 @@ export function createMockQueueService() {
       };
       jobs.push(job);
       return Promise.resolve(job);
-    }),
-    process: jest.fn().mockImplementation((processor: Function) => {
+    }) as any),
+    process: jest.fn().mockImplementation(((processor: unknown) => {
       // Mock job processing
       setImmediate(() => {
         const waitingJobs = jobs.filter(job => job.status === 'waiting');
         waitingJobs.forEach(job => {
           job.status = 'completed';
-          processor(job);
+          (processor as Function)(job);
         });
       });
-    }),
+    }) as any),
     getJobs: jest.fn().mockReturnValue(jobs),
     clearJobs: jest.fn().mockImplementation(() => {
       jobs.length = 0;
@@ -279,7 +284,7 @@ export function createMockAnalyticsService() {
   const events: any[] = [];
 
   return {
-    track: jest.fn().mockImplementation((event: string, properties: any) => {
+    track: jest.fn().mockImplementation(((event: unknown, properties: unknown) => {
       events.push({
         event,
         properties,
@@ -287,15 +292,15 @@ export function createMockAnalyticsService() {
         userId: 'mock-user-id',
       });
       return Promise.resolve();
-    }),
-    identify: jest.fn().mockImplementation((userId: string, traits: any) => {
+    }) as any),
+    identify: jest.fn().mockImplementation(((userId: unknown, traits: unknown) => {
       events.push({
         event: 'identify',
-        properties: { userId, ...traits },
+        properties: { userId, ...traits as any },
         timestamp: new Date(),
       });
       return Promise.resolve();
-    }),
+    }) as any),
     getEvents: jest.fn().mockReturnValue(events),
     clearEvents: jest.fn().mockImplementation(() => {
       events.length = 0;
@@ -321,39 +326,48 @@ export function createMockServices(overrides?: any) {
   };
 }
 
-// Mock environment setup
+// Mock environment setup - Updated to work properly with Jest
 export function setupMockEnvironment() {
-  // Store original modules
-  const originalModules = {
-    '@supabase/supabase-js': jest.fn(),
-    'ioredis': jest.fn(),
-    'openai': jest.fn(),
-    'natural': jest.fn(),
-    'winston': jest.fn(),
-    'crypto': jest.fn(),
-  };
+  // Set test environment variables
+  process.env.NODE_ENV = 'test';
+  process.env.SUPABASE_URL = 'https://test.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'test-key-123';
+  process.env.REDIS_URL = 'redis://localhost:6379/1';
+  process.env.TELEMETRY_ENABLED = 'false';
+  process.env.OPENAI_API_KEY = 'test-openai-key';
 
-  // Mock all external dependencies
-  jest.mock('@supabase/supabase-js', () => ({
-    createClient: jest.fn().mockReturnValue(createMockSupabaseClient()),
-  }));
-
-  jest.mock('ioredis', () => jest.fn().mockImplementation(() => createMockRedisClient()));
-
-  jest.mock('openai', () => ({
-    OpenAI: jest.fn().mockImplementation(() => createMockOpenAIClient()),
-  }));
-
-  jest.mock('winston', () => createMockLogger());
-
-  jest.mock('crypto', () => createMockCrypto());
-
+  // Return cleanup function
   return {
     cleanup: () => {
-      // Restore original modules if needed
-      Object.keys(originalModules).forEach(module => {
-        jest.unmock(module);
-      });
+      delete process.env.NODE_ENV;
+      delete process.env.SUPABASE_URL;
+      delete process.env.SUPABASE_ANON_KEY;
+      delete process.env.REDIS_URL;
+      delete process.env.TELEMETRY_ENABLED;
+      delete process.env.OPENAI_API_KEY;
     },
+  };
+}
+
+// Global mock setup for common modules
+export function setupGlobalMocks() {
+  // Mock console methods to reduce noise during testing
+  global.console = {
+    ...console,
+    log: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+
+  // Mock timers if needed
+  jest.useFakeTimers();
+
+  return {
+    restore: () => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    }
   };
 }

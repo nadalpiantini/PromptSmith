@@ -108,34 +108,21 @@ pimpprompt --search "authentication"
 
 ### 3. MCP Integration for Cursor IDE
 
-#### Option A: Use Pre-configured File
-```bash
-# Copy the ready-to-use configuration
-cp cursor-mcp-config.json ~/.cursor/mcp-settings.json
-```
+**Now works like any other MCP server - no manual configuration needed!**
 
-#### Option B: Manual Configuration
 Add to your Cursor settings (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
 
 ```json
 {
   "mcpServers": {
     "promptsmith": {
-      "command": "node",
-      "args": ["dist/mcp-server.js"],
-      "cwd": "/path/to/your/PromptSmith",
-      "env": {
-        "SUPABASE_URL": "https://nqzhxukuvmdlpewqytpv.supabase.co",
-        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xemh4dWt1dm1kbHBld3F5dHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY3ODYwNzMsImV4cCI6MjA0MjM2MjA3M30.xLSRRy7FNMHJd9F39R85dU7qOzHLQxnMO0zQfqRZ1Ho",
-        "NODE_ENV": "production",
-        "TELEMETRY_ENABLED": "false"
-      }
+      "command": "promptsmith-mcp"
     }
   }
 }
 ```
 
-**Important**: Replace `/path/to/your/PromptSmith` with the actual path where you cloned PromptSmith.
+**That's it!** No paths, no environment variables, no manual setup. PromptSmith auto-configures everything.
 
 ### 4. Restart Cursor
 

@@ -18,16 +18,20 @@ export default [
       '@typescript-eslint': tsEslint
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
       'no-var': 'error',
+      'no-unused-vars': 'off', // Use TS version instead
+      'no-undef': 'off', // TypeScript handles this
       'object-shorthand': 'error',
       'prefer-template': 'error',
       'eqeqeq': ['error', 'always'],
       'no-console': 'warn',
-      'no-debugger': 'error'
+      'no-debugger': 'error',
+      'no-useless-escape': 'warn',
+      'no-control-regex': 'off' // Allow control chars in regex for text processing
     }
   },
   {

@@ -1,0 +1,271 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Initialize a new Node.js project for MCP Inspector
+RUN npm init -y
+
+# Install dependencies for MCP inspection
+RUN npm install express ws socket.io prom-client
+
+# No source code copying needed - standalone service
+
+# Create MCP Inspector service
+RUN cat > mcp-inspector.js << 'EOF'
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const client = require('prom-client');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Prometheus metrics
+const register = new client.Registry();
+const httpRequestsTotal = new client.Counter({
+  name: 'mcp_requests_total',
+  help: 'Total number of MCP requests',
+  labelNames: ['method', 'status']
+});
+const httpRequestDuration = new client.Histogram({
+  name: 'mcp_request_duration_seconds',
+  help: 'MCP request duration',
+  labelNames: ['method']
+});
+
+register.registerMetric(httpRequestsTotal);
+register.registerMetric(httpRequestDuration);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
+// Serve static files for UI
+app.use(express.static('public'));
+
+// MCP Protocol monitoring
+const mcpConnections = new Map();
+const mcpMessages = [];
+
+io.on('connection', (socket) => {
+  console.log('Inspector client connected:', socket.id);
+  
+  socket.on('mcp-connect', (config) => {
+    console.log('MCP connection request:', config);
+    mcpConnections.set(socket.id, config);
+    socket.emit('mcp-status', { connected: true });
+  });
+  
+  socket.on('mcp-message', (message) => {
+    const timestamp = new Date().toISOString();
+    const logEntry = { timestamp, message, socketId: socket.id };
+    mcpMessages.push(logEntry);
+    
+    // Keep only last 1000 messages
+    if (mcpMessages.length > 1000) {
+      mcpMessages.shift();
+    }
+    
+    // Broadcast to all connected clients
+    io.emit('mcp-log', logEntry);
+    
+    // Update metrics
+    httpRequestsTotal.inc({ 
+      method: message.method || 'unknown', 
+      status: message.error ? 'error' : 'success' 
+    });
+  });
+  
+  socket.on('get-logs', () => {
+    socket.emit('mcp-logs', mcpMessages);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Inspector client disconnected:', socket.id);
+    mcpConnections.delete(socket.id);
+  });
+});
+
+// API endpoints
+app.get('/api/connections', (req, res) => {
+  res.json(Array.from(mcpConnections.values()));
+});
+
+app.get('/api/messages', (req, res) => {
+  res.json(mcpMessages.slice(-100)); // Last 100 messages
+});
+
+app.get('/api/stats', (req, res) => {
+  const stats = {
+    totalConnections: mcpConnections.size,
+    totalMessages: mcpMessages.length,
+    recentErrors: mcpMessages.filter(m => 
+      m.message.error && 
+      new Date(m.timestamp) > new Date(Date.now() - 5 * 60 * 1000)
+    ).length
+  };
+  res.json(stats);
+});
+
+const PORT = process.env.PORT || 6274;
+server.listen(PORT, () => {
+  console.log(`MCP Inspector running on port ${PORT}`);
+  console.log(`Dashboard: http://localhost:${PORT}`);
+  console.log(`Health: http://localhost:${PORT}/health`);
+  console.log(`Metrics: http://localhost:${PORT}/metrics`);
+});
+EOF
+
+# Create simple web UI
+RUN mkdir -p public && cat > public/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Inspector</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .stats { display: flex; gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1; text-align: center; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #4CAF50; }
+        .logs { background: #000; padding: 20px; border-radius: 8px; height: 400px; overflow-y: auto; }
+        .log-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #4CAF50; }
+        .log-error { border-color: #f44336; }
+        .timestamp { color: #888; font-size: 0.9em; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕵️ MCP Inspector Dashboard</h1>
+            <p>Real-time MCP Protocol Monitoring</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="connections">0</div>
+                <div>Active Connections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="messages">0</div>
+                <div>Total Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="errors">0</div>
+                <div>Recent Errors</div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <button onclick="clearLogs()">Clear Logs</button>
+            <button onclick="exportLogs()">Export Logs</button>
+            <button onclick="toggleAutoScroll()">Auto Scroll: <span id="autoscroll-status">ON</span></button>
+        </div>
+        
+        <div class="logs" id="logs"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let autoScroll = true;
+        let logs = [];
+
+        socket.on('connect', () => {
+            console.log('Connected to MCP Inspector');
+            socket.emit('get-logs');
+            updateStats();
+        });
+
+        socket.on('mcp-log', (entry) => {
+            logs.push(entry);
+            addLogEntry(entry);
+            updateStats();
+        });
+
+        socket.on('mcp-logs', (allLogs) => {
+            logs = allLogs;
+            renderLogs();
+            updateStats();
+        });
+
+        function addLogEntry(entry) {
+            const logsDiv = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = 'log-entry' + (entry.message.error ? ' log-error' : '');
+            div.innerHTML = `
+                <span class="timestamp">[${new Date(entry.timestamp).toLocaleTimeString()}]</span>
+                <strong>${entry.message.method || 'Unknown'}</strong>: 
+                ${JSON.stringify(entry.message, null, 2)}
+            `;
+            logsDiv.appendChild(div);
+            
+            if (autoScroll) {
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            }
+        }
+
+        function renderLogs() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = '';
+            logs.forEach(addLogEntry);
+        }
+
+        function updateStats() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(stats => {
+                    document.getElementById('connections').textContent = stats.totalConnections;
+                    document.getElementById('messages').textContent = stats.totalMessages;
+                    document.getElementById('errors').textContent = stats.recentErrors;
+                });
+        }
+
+        function clearLogs() {
+            logs = [];
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function exportLogs() {
+            const data = JSON.stringify(logs, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mcp-logs-${new Date().toISOString()}.json`;
+            a.click();
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoscroll-status').textContent = autoScroll ? 'ON' : 'OFF';
+        }
+
+        // Update stats every 30 seconds
+        setInterval(updateStats, 30000);
+    </script>
+</body>
+</html>
+EOF
+
+EXPOSE 6274
+
+CMD ["node", "mcp-inspector.js"]

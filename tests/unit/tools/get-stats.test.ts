@@ -3,31 +3,35 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PromptSmithServer } from '../../../src/server/index.js';
-import { services } from '../../../src/services/index.js';
+import { PromptSmithServer } from '../../../src/server/index';
+import { services } from '../../../src/services/index';
 import {
   measurePerformance,
   expectWithinPerformanceThreshold,
   TEST_CONSTANTS,
-} from '../../utils/test-helpers.js';
-import { setupMockEnvironment, createMockServices } from '../../utils/mock-services.js';
+  createMockServices
+} from '../../utils/test-helpers';
+import { setupMockEnvironment } from '../../utils/mock-services';
 
 // Mock external services
 setupMockEnvironment();
 
-// Mock services
-const mockServices = createMockServices();
-jest.mock('../../../src/services/index.js', () => ({
-  services: mockServices,
-}));
-
 describe('get_stats tool', () => {
   let server: any;
+  let mockServices: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    
+    // Create mock services
+    mockServices = createMockServices();
+    
+    // Mock the services module
+    jest.doMock('../../../src/services/index', () => ({
+      services: mockServices,
+    }));
 
-    const serverModule = await import('../../../src/server/index.js');
+    const serverModule = await import('../../../src/server/index');
     server = new serverModule.PromptSmithServer();
   });
 
@@ -160,8 +164,8 @@ describe('get_stats tool', () => {
       const originalUptime = process.uptime;
       const originalMemoryUsage = process.memoryUsage;
 
-      (process.uptime as jest.Mock) = jest.fn().mockReturnValue(123456);
-      (process.memoryUsage as jest.Mock) = jest.fn().mockReturnValue({
+      (process.uptime as any) = jest.fn().mockReturnValue(123456);
+      (process.memoryUsage as any) = jest.fn().mockReturnValue({
         rss: 50 * 1024 * 1024,
         heapTotal: 30 * 1024 * 1024,
         heapUsed: 20 * 1024 * 1024,

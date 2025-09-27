@@ -14,9 +14,9 @@
     "start": "node dist/cli.js",
     "start:http": "node dist/server/http-server.js",
     "dev:http": "tsx watch src/server/http-server.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -30,7 +30,11 @@
     "clean": "rm -rf dist",
     "prepare": "npm run build",
     "docker:build": "docker build -t promptsmith-mcp .",
-    "docker:run": "docker run -p 3000:3000 promptsmith-mcp"
+    "docker:run": "docker run -p 3000:3000 promptsmith-mcp",
+    "production:check": "node scripts/production-readiness-check.js",
+    "auto-fix": "tsx tools/auto-fix-mcp.ts",
+    "auto-fix:docker": "docker-compose --profile auto-fix up --build",
+    "mcp:stdio": "node scripts/patch-and-run-promptsmith.js"
   },
   "keywords": [
     "mcp",

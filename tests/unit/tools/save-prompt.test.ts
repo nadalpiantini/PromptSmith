@@ -3,19 +3,19 @@
  */
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PromptSmithServer } from '../../../src/server/index.js';
+import { PromptSmithServer } from '../../../src/server/index';
 import {
   createMockSavedPrompt,
   createMockOrchestrator,
   measurePerformance,
   expectWithinPerformanceThreshold,
   TEST_CONSTANTS,
-} from '../../utils/test-helpers.js';
-import { setupMockEnvironment } from '../../utils/mock-services.js';
+} from '../../utils/test-helpers';
+import { setupMockEnvironment } from '../../utils/mock-services';
 
 // Mock the orchestrator
 const mockOrchestrator = createMockOrchestrator();
-jest.mock('../../../src/core/orchestrator.js', () => ({
+jest.mock('../../../src/core/orchestrator', () => ({
   PromptOrchestrator: jest.fn().mockImplementation(() => mockOrchestrator),
 }));
 
@@ -28,7 +28,7 @@ describe('save_prompt tool', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const serverModule = await import('../../../src/server/index.js');
+    const serverModule = await import('../../../src/server/index');
     server = new serverModule.PromptSmithServer();
   });
 

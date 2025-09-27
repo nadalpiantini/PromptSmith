@@ -20,7 +20,7 @@ const colors = {
 
 function log(level, message) {
   const color = colors[level] || colors.reset;
-  console.log(`${color}[${level.upper()}]${colors.reset} ${message}`);
+  console.log(`${color}[${level.toUpperCase()}]${colors.reset} ${message}`);
 }
 
 function logInfo(msg) { log('blue', msg); }

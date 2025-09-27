@@ -3,8 +3,9 @@
  * Tests the orchestration of the processing pipeline
  */
 
+// @ts-nocheck
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { PromptOrchestrator } from '../../../src/core/orchestrator.js';
+import { PromptOrchestrator } from '../../../src/core/orchestrator';
 import {
   ProcessInput,
   ProcessResult,
@@ -15,16 +16,16 @@ import {
   ValidationResult,
   PromptDomain,
   PromptTone
-} from '../../../src/types/prompt.js';
+} from '../../../src/types/prompt';
 import {
   createMockProcessResult,
   createMockAnalysisResult,
   createMockValidationResult,
   createMockQualityScore
-} from '../../utils/test-helpers.js';
+} from '../../utils/test-helpers';
 
 // Mock all services
-jest.mock('../../../src/services/index.js', () => ({
+jest.mock('../../../src/services/index', () => ({
   services: {
     cache: {
       get: jest.fn(),
@@ -58,13 +59,13 @@ jest.mock('../../../src/services/index.js', () => ({
 }));
 
 // Mock core components
-jest.mock('../../../src/core/analyzer.js', () => ({
+jest.mock('../../../src/core/analyzer', () => ({
   PromptAnalyzer: jest.fn().mockImplementation(() => ({
     analyze: jest.fn().mockResolvedValue(createMockAnalysisResult())
   }))
 }));
 
-jest.mock('../../../src/core/optimizer.js', () => ({
+jest.mock('../../../src/core/optimizer', () => ({
   PromptOptimizer: jest.fn().mockImplementation(() => ({
     optimize: jest.fn().mockResolvedValue({
       optimized: 'Optimized prompt',
@@ -76,7 +77,7 @@ jest.mock('../../../src/core/optimizer.js', () => ({
   }))
 }));
 
-jest.mock('../../../src/core/validator.js', () => ({
+jest.mock('../../../src/core/validator', () => ({
   PromptValidator: jest.fn().mockImplementation(() => ({
     validate: jest.fn().mockResolvedValue(createMockValidationResult())
   }))
@@ -91,7 +92,7 @@ describe('PromptOrchestrator', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const { services } = await import('../../../src/services/index.js');
+    const { services } = await import('../../../src/services/index');
     mockCache = services.cache;
     mockStore = services.store;
     mockTelemetry = services.telemetry;
@@ -160,7 +161,7 @@ describe('PromptOrchestrator', () => {
     });
 
     it('should apply domain-specific processing', async () => {
-      const domains = ['sql', 'branding', 'cine', 'saas', 'devops', 'general'] as const;
+      const domains = [PromptDomain.SQL, PromptDomain.BRANDING, PromptDomain.CINE, PromptDomain.SAAS, PromptDomain.DEVOPS, PromptDomain.GENERAL] as const;
 
       for (const domain of domains) {
         const input: ProcessInput = {
