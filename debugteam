@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# 🦸‍♂️ DEBUGTEAM COMMAND - Liga de la Justicia Activation
+# Recognizes various activation triggers and deploys the debug team
+
+# Check for activation keywords
+COMMAND_LINE="$*"
+ACTIVATION_DETECTED=false
+
+# Debug team activation patterns (case-insensitive)
+if echo "$COMMAND_LINE" | grep -i -E "(debugteam|debug team|liga.*justicia)" > /dev/null; then
+    ACTIVATION_DETECTED=true
+fi
+
+# SHAZAM! + debugteam patterns
+if echo "$COMMAND_LINE" | grep -i -E "(shazam.*debugteam|shazam.*debug.*team)" > /dev/null; then
+    ACTIVATION_DETECTED=true
+    SHAZAM_MODE=true
+fi
+
+# If no command line args, treat as activation
+if [ $# -eq 0 ]; then
+    ACTIVATION_DETECTED=true
+fi
+
+if [ "$ACTIVATION_DETECTED" = true ]; then
+    echo "🦸‍♂️ DEBUG TEAM ACTIVATION DETECTED!"
+    echo ""
+    
+    if [ "$SHAZAM_MODE" = true ]; then
+        echo "⚡ SHAZAM! + DEBUG TEAM COMBO ACTIVATED!"
+        echo "🎯 ULTRA-ANALYSIS + Liga de la Justicia coordination"
+        echo ""
+    fi
+    
+    # Change to project directory if not already there
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    cd "$SCRIPT_DIR"
+    
+    # Execute the activation script
+    ./scripts/activate-debugteam.sh
+else
+    echo "🦸‍♂️ Debug Team Command"
+    echo ""
+    echo "Usage:"
+    echo "  debugteam                    - Activate debug team"
+    echo "  debugteam help              - Show this help"
+    echo "  'debugteam'                 - Activate via keyword"
+    echo "  'liga de la justicia'       - Activate via Spanish name"
+    echo "  'shazam debugteam'          - Ultra-mode activation"
+    echo ""
+    echo "Available services:"
+    echo "  📊 Real-time error tracking"
+    echo "  🔍 Distributed tracing"
+    echo "  📈 Performance monitoring"
+    echo "  🎯 Issue detection & triage"
+    echo "  ⚡ Auto-fix capabilities"
+    echo ""
+    echo "Quick commands:"
+    echo "  ./observability-status.sh   - Check service status"
+    echo "  ./deploy-observability.sh   - Deploy full stack"
+    echo "  ./validate-deployment.sh    - Validate everything"
+fi

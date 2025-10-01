@@ -324,19 +324,31 @@ export class ObservabilityService extends TelemetryService {
         }
       };
 
-      await fetch(`${this.config.jaegerEndpoint}/api/traces`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: [{
-            traceID: span.traceId,
-            spans: [jaegerSpan]
-          }]
-        })
-      });
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+
+      try {
+        await fetch(`${this.config.jaegerEndpoint}/api/traces`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: [{
+              traceID: span.traceId,
+              spans: [jaegerSpan]
+            }]
+          }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
     } catch (error) {
-      console.warn('Failed to send span to Jaeger:', error);
+      // Only log in development to avoid stderr pollution in STDIO mode
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to send span to Jaeger:', error);
+      }
     }
   }
 
@@ -361,11 +373,20 @@ export class ObservabilityService extends TelemetryService {
     try {
       if (!this.config.mcpInspectorEndpoint) return;
 
-      await fetch(`${this.config.mcpInspectorEndpoint}/api/mcp-events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(event)
-      });
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+
+      try {
+        await fetch(`${this.config.mcpInspectorEndpoint}/api/mcp-events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(event),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
     } catch (error) {
       console.warn('Failed to send event to MCP Inspector:', error);

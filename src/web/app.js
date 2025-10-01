@@ -244,7 +244,7 @@ class PimpPromptApp {
   displayResults(data) {
     this.state.currentPrompt = data;
     
-    const optimizedText = data.optimized || data.result || 'No optimized result available';
+    const optimizedText = data.refined || data.optimized || data.result || 'No optimized result available';
     
     this.elements.resultsContent.innerHTML = `
       <div class="results-text">${this.escapeHtml(optimizedText)}</div>
@@ -329,7 +329,7 @@ class PimpPromptApp {
   async copyToClipboard() {
     if (!this.state.currentPrompt) return;
     
-    const text = this.state.currentPrompt.optimized || this.state.currentPrompt.result;
+    const text = this.state.currentPrompt.refined || this.state.currentPrompt.optimized || this.state.currentPrompt.result;
     
     try {
       await navigator.clipboard.writeText(text);
@@ -372,7 +372,7 @@ class PimpPromptApp {
     try {
       const response = await this.apiCall('POST', this.api.endpoints.save, {
         original: this.elements.inputText.value,
-        optimized: this.state.currentPrompt.optimized || this.state.currentPrompt.result,
+        optimized: this.state.currentPrompt.refined || this.state.currentPrompt.optimized || this.state.currentPrompt.result,
         metadata: {
           title,
           description,
@@ -462,7 +462,7 @@ class PimpPromptApp {
     const prompt = {
       id: Date.now(),
       original,
-      optimized: result.optimized || result.result,
+      optimized: result.refined || result.optimized || result.result,
       timestamp: new Date().toISOString(),
       domain: result.analysis?.domain || 'general'
     };

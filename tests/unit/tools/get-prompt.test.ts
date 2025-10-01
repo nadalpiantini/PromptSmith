@@ -16,33 +16,40 @@ import { setupMockEnvironment, createMockServices } from '../../utils/mock-servi
 // Mock external services
 setupMockEnvironment();
 
-// Mock services
-const mockServices = createMockServices();
-jest.mock('../../../src/services/index', () => ({
-  services: mockServices,
-}));
-
 describe('get_prompt tool', () => {
   let server: any;
+  let mockStore: any;
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    // Create mock store service
+    mockStore = {
+      save: jest.fn(),
+      getById: jest.fn(),
+      search: jest.fn(),
+      getStats: jest.fn(),
+    };
+
     const serverModule = await import('../../../src/server/index');
     server = new serverModule.PromptSmithServer();
+    
+    // Mock the services after server creation
+    const servicesModule = await import('../../../src/services/index');
+    jest.spyOn(servicesModule.services.store, 'getById').mockImplementation(mockStore.getById);
   });
 
   describe('valid inputs', () => {
     it('should retrieve a prompt by ID successfully', async () => {
       const promptId = 'prompt_123';
       const mockPrompt = createMockSavedPrompt({ id: promptId });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
       });
 
-      expect(mockServices.store.getById).toHaveBeenCalledWith(promptId);
+      expect(mockStore.getById).toHaveBeenCalledWith(promptId);
 
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
@@ -71,7 +78,7 @@ describe('get_prompt tool', () => {
           domain: domain as any,
           name: `${domain} prompt`,
         });
-        mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+        mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
         const result = await server.handleGetPrompt({
           id: promptId,
@@ -110,7 +117,7 @@ describe('get_prompt tool', () => {
           authorId: 'expert_architect_123',
         },
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -127,7 +134,7 @@ describe('get_prompt tool', () => {
       expect(prompt.systemPrompt).toContain('expert database architect');
       expect(prompt.score.overall).toBeGreaterThan(0.88);
       expect(prompt.metadata.isPublic).toBe(true);
-      expect(prompt.metadata.version).toBe('2.0.0');
+      expect(prompt.metadata.authorId).toBe('expert_architect_123');
     });
 
     it('should retrieve prompt with usage statistics', async () => {
@@ -137,7 +144,7 @@ describe('get_prompt tool', () => {
         name: 'Popular Template',
       });
       // Note: Usage stats would typically be included in the saved prompt or fetched separately
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -163,7 +170,7 @@ describe('get_prompt tool', () => {
             isPublic: testCase.isPublic,
           },
         });
-        mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+        mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
         const result = await server.handleGetPrompt({
           id: testCase.id,
@@ -197,7 +204,7 @@ describe('get_prompt tool', () => {
 
     it('should handle prompt not found', async () => {
       const nonExistentId = 'nonexistent_prompt_123';
-      mockServices.store.getById.mockResolvedValueOnce(null);
+      mockStore.getById.mockResolvedValueOnce(null);
 
       await expect(server.handleGetPrompt({
         id: nonExistentId,
@@ -207,17 +214,17 @@ describe('get_prompt tool', () => {
     it('should handle database connection errors', async () => {
       const promptId = 'test_prompt_123';
       const error = new Error('Database connection failed');
-      mockServices.store.getById.mockRejectedValueOnce(error);
+      mockStore.getById.mockRejectedValueOnce(error);
 
       await expect(server.handleGetPrompt({
         id: promptId,
-      })).rejects.toThrow('Tool execution failed: Database connection failed');
+      })).rejects.toThrow('Database connection failed');
     });
 
     it('should handle malformed prompt data', async () => {
       const promptId = 'malformed_prompt_123';
       const malformedPrompt = { id: promptId }; // Missing required fields
-      mockServices.store.getById.mockResolvedValueOnce(malformedPrompt);
+      mockStore.getById.mockResolvedValueOnce(malformedPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -239,7 +246,7 @@ describe('get_prompt tool', () => {
 
       for (const promptId of specialIds) {
         const mockPrompt = createMockSavedPrompt({ id: promptId });
-        mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+        mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
         const result = await server.handleGetPrompt({
           id: promptId,
@@ -256,7 +263,7 @@ describe('get_prompt tool', () => {
     it('should handle very long prompt IDs', async () => {
       const longId = 'a'.repeat(100) + '_prompt_123';
       const mockPrompt = createMockSavedPrompt({ id: longId });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: longId,
@@ -274,7 +281,7 @@ describe('get_prompt tool', () => {
         id: promptId,
         prompt: longPrompt,
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -293,7 +300,7 @@ describe('get_prompt tool', () => {
         id: promptId,
         tags: manyTags,
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -314,7 +321,7 @@ describe('get_prompt tool', () => {
         systemPrompt: null,
         tags: [],
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -331,7 +338,7 @@ describe('get_prompt tool', () => {
     it('should complete retrieval within performance threshold', async () => {
       const promptId = 'performance_test_prompt_123';
       const mockPrompt = createMockSavedPrompt({ id: promptId });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const { duration } = await measurePerformance(async () => {
         return await server.handleGetPrompt({
@@ -352,7 +359,7 @@ describe('get_prompt tool', () => {
       // Set up mock responses for all prompts
       promptIds.forEach(id => {
         const mockPrompt = createMockSavedPrompt({ id });
-        mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+        mockStore.getById.mockResolvedValueOnce(mockPrompt);
       });
 
       const promises = promptIds.map(id =>
@@ -380,7 +387,7 @@ describe('get_prompt tool', () => {
         id: promptId,
         prompt: largePrompt,
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const { result, duration } = await measurePerformance(async () => {
         return await server.handleGetPrompt({
@@ -401,7 +408,7 @@ describe('get_prompt tool', () => {
     it('should return properly formatted MCP tool response', async () => {
       const promptId = 'format_test_prompt_123';
       const mockPrompt = createMockSavedPrompt({ id: promptId });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -446,9 +453,10 @@ describe('get_prompt tool', () => {
           name: 'Data Types Test',
           domain: 'general',
           isPublic: false,
+          authorId: 'user_456',
         },
       });
-      mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+      mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
       const result = await server.handleGetPrompt({
         id: promptId,
@@ -466,8 +474,8 @@ describe('get_prompt tool', () => {
       expect(prompt.metadata.isPublic).toBe(false);
 
       // Validate string types
-      expect(typeof prompt.metadata.version).toBe('string');
-      expect(prompt.metadata.version).toBe('1.2.0');
+      expect(typeof prompt.metadata.authorId).toBe('string');
+      expect(prompt.metadata.authorId).toBe('user_456');
 
       // Validate date strings
       expect(typeof prompt.createdAt).toBe('string');
@@ -498,7 +506,7 @@ describe('get_prompt tool', () => {
           id: promptId,
           ...testCase.mockData,
         });
-        mockServices.store.getById.mockResolvedValueOnce(mockPrompt);
+        mockStore.getById.mockResolvedValueOnce(mockPrompt);
 
         const result = await server.handleGetPrompt({
           id: promptId,

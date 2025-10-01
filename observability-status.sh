@@ -13,14 +13,15 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Check if services are running
-declare -A SERVICES=(
-    ["Central_Dashboard"]="localhost:8888"
-    ["Jaeger_Tracing"]="localhost:16686"
-    ["GlitchTip_Errors"]="localhost:8000"
-    ["Grafana_Metrics"]="localhost:3001"
-    ["Prometheus"]="localhost:9090"
-    ["Redis_Commander"]="localhost:8081"
-    ["MCP_Inspector"]="localhost:6274"
+# Service definitions (compatible with older bash versions)
+SERVICES=(
+    "Central_Dashboard:localhost:8888"
+    "Jaeger_Tracing:localhost:16686"
+    "GlitchTip_Errors:localhost:8000"
+    "Grafana_Metrics:localhost:3001"
+    "Prometheus:localhost:9090"
+    "Redis_Commander:localhost:8081"
+    "MCP_Inspector:localhost:6274"
 )
 
 echo "Service Status:"
@@ -29,14 +30,17 @@ echo "==============="
 healthy=0
 total=${#SERVICES[@]}
 
-for service in "${!SERVICES[@]}"; do
-    url="http://${SERVICES[$service]}"
+for service_entry in "${SERVICES[@]}"; do
+    # Split service entry by colon
+    service_name=$(echo "$service_entry" | cut -d: -f1)
+    service_url=$(echo "$service_entry" | cut -d: -f2,3)
+    url="http://$service_url"
     
     if curl -f -s "$url" > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ $service${NC} - http://${SERVICES[$service]}"
+        echo -e "${GREEN}✅ $service_name${NC} - $url"
         ((healthy++))
     else
-        echo -e "${RED}❌ $service${NC} - http://${SERVICES[$service]}"
+        echo -e "${RED}❌ $service_name${NC} - $url"
     fi
 done
 

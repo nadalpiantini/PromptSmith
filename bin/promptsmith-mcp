@@ -32,19 +32,31 @@ Object.keys(defaultEnv).forEach(key => {
   }
 });
 
-// Find the patched MCP server entry point
+// Check if we should use offline mode
+const isOfflineMode = !env.SUPABASE_URL || 
+                     env.SUPABASE_URL.includes('localhost') ||
+                     env.MCP_OFFLINE_MODE === 'true';
+
+// Find the appropriate MCP server entry point
+const offlineWrapperPath = join(promptsmithRoot, 'scripts', 'mcp-offline-wrapper.cjs');
 const patchedScriptPath = join(promptsmithRoot, 'scripts', 'patch-and-run-promptsmith.cjs');
 const mcpServerPath = join(promptsmithRoot, 'dist', 'mcp-server.js');
 
-// Check if patch script exists, otherwise fallback to original
 let serverCommand, serverArgs;
 
-if (existsSync(patchedScriptPath) && existsSync(mcpServerPath)) {
+if (isOfflineMode && existsSync(offlineWrapperPath)) {
+  // Use offline wrapper for graceful fallback
+  console.error('🔧 PromptSmith MCP: Starting in OFFLINE mode');
+  serverCommand = 'node';
+  serverArgs = [offlineWrapperPath];
+} else if (existsSync(patchedScriptPath) && existsSync(mcpServerPath)) {
   // Use patched version for better STDIO compatibility
+  console.error('🚀 PromptSmith MCP: Starting in ONLINE mode');
   serverCommand = 'node';
   serverArgs = [patchedScriptPath];
 } else if (existsSync(mcpServerPath)) {
   // Use built version (fallback)
+  console.error('🚀 PromptSmith MCP: Starting (fallback mode)');
   serverCommand = 'node';
   serverArgs = [mcpServerPath];
 } else {

@@ -25,7 +25,7 @@ function gracefulExit(code: number, message?: string): void {
   process.exit(code);
 }
 
-// Validate required environment variables
+// Validate required environment variables (unless in offline mode)
 const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY'
@@ -33,9 +33,16 @@ const requiredEnvVars = [
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
-if (missingEnvVars.length > 0) {
+// Allow missing env vars in offline mode or when explicitly forced
+const isOfflineMode = process.env.MCP_OFFLINE_MODE === 'true' || 
+                     process.env.FORCE_DEVELOPMENT_MODE === 'true' ||
+                     isSTDIOMode(); // Allow STDIO mode to work without full env
+
+if (missingEnvVars.length > 0 && !isOfflineMode) {
   const errorMessage = `❌ Missing required environment variables:\n${missingEnvVars.map(v => `   - ${v}`).join('\n')}\n\n💡 Please check your .env file or environment configuration`;
   gracefulExit(1, errorMessage);
+} else if (missingEnvVars.length > 0) {
+  console.error(`⚠️  Running in offline mode due to missing environment variables: ${missingEnvVars.join(', ')}`);
 }
 
 // Optional environment variables with defaults

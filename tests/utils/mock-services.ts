@@ -308,6 +308,62 @@ export function createMockAnalyticsService() {
   };
 }
 
+// Mock store service
+export function createMockStoreService() {
+  return {
+    save: jest.fn(),
+    getById: jest.fn(),
+    search: jest.fn(),
+    getStats: jest.fn(),
+  };
+}
+
+// Mock refine service
+export function createMockRefineService() {
+  return {
+    refine: jest.fn(),
+  };
+}
+
+// Mock score service
+export function createMockScoreService() {
+  return {
+    score: jest.fn(),
+    evaluate: jest.fn(),
+  };
+}
+
+// Mock cache service
+export function createMockCacheService() {
+  return {
+    get: jest.fn(),
+    set: jest.fn(),
+    delete: jest.fn(),
+    clear: jest.fn(),
+    has: jest.fn(),
+  };
+}
+
+// Mock telemetry service
+export function createMockTelemetryService() {
+  return {
+    track: jest.fn(),
+    trackError: jest.fn(),
+    trackMetric: jest.fn(),
+    getStats: jest.fn(),
+  };
+}
+
+// Mock observability service
+export function createMockObservabilityService() {
+  return {
+    track: jest.fn(),
+    trackError: jest.fn(),
+    trackMetric: jest.fn(),
+    getStats: jest.fn(),
+  };
+}
+
 // Service factory for easy mocking
 export function createMockServices(overrides?: any) {
   return {
@@ -322,6 +378,13 @@ export function createMockServices(overrides?: any) {
     webhook: createMockWebhookService(),
     queue: createMockQueueService(),
     analytics: createMockAnalyticsService(),
+    // Add the missing services
+    store: createMockStoreService(),
+    refine: createMockRefineService(),
+    score: createMockScoreService(),
+    cache: createMockCacheService(),
+    telemetry: createMockTelemetryService(),
+    observability: createMockObservabilityService(),
     ...overrides,
   };
 }

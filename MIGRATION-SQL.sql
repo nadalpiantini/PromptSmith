@@ -1,6 +1,6 @@
 -- PromptSmith Domain Migration
 -- This adds all missing domain values to the promptsmith_domain enum
--- Generated on: 2025-09-26T04:41:35.557Z
+-- Generated on: 2025-09-27T13:50:34.383Z
 
 -- Add mobile domain
 DO $$

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# 🦸‍♂️ LIGA DE LA JUSTICIA - Direct Spanish activation
+# Alternative command name for Spanish speakers
+
+echo "🦸‍♂️ ¡LIGA DE LA JUSTICIA ACTIVADA!"
+echo "=================================="
+echo ""
+echo "Activando protocolos de depuración heroicos..."
+echo ""
+
+# Execute the debugteam activation
+./debugteam

@@ -184,3 +184,4 @@ test-results.json
 # Local development
 .local/
 local/
+.vercel
